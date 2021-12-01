@@ -119,5 +119,21 @@ func countLargerThanPrevious(measurements: [Int]) -> Int {
   return largerCnt
 }
 
-let cnt = countLargerThanPrevious(measurements: input)
-print(cnt)
+func countSlidingWindowLargerThanPrevious(measurements: [Int], slidingWindowSize: Int = 3) -> Int {
+  var largerCnt = 0
+  measurements.enumerated().forEach { (i, measurement) in
+    guard i > 0, i + 2 < measurements.count else { return }
+    
+    let a = measurements[i - 1] + measurement + measurements[i + 1]
+    let b = measurement + measurements[i + 1] + measurements[i + 2]
+    
+    if a < b {
+      largerCnt += 1
+    }
+  }
+  
+  return largerCnt
+}
+
+print("part 1: \(countLargerThanPrevious(measurements: input))")
+print("part 2: \(countSlidingWindowLargerThanPrevious(measurements: input))")

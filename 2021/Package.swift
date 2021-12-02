@@ -8,6 +8,7 @@ let package = Package(
     dependencies: [],
     targets: [
         .executableTarget(name: "01"),
-        .executableTarget(name: "02")
+        .executableTarget(name: "02"),
+        .executableTarget(name: "03")
     ]
 )

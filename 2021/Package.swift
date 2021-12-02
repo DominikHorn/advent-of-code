@@ -7,9 +7,7 @@ let package = Package(
     name: "2021",
     dependencies: [],
     targets: [
-        .executableTarget(
-            name: "01",
-            dependencies: []
-        )
+        .executableTarget(name: "01"),
+        .executableTarget(name: "02")
     ]
 )

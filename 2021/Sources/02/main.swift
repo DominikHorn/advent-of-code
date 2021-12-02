@@ -1,8 +1,9 @@
 import Foundation
 
-struct Position {
+struct SubmarinePosition {
   var x: Int = 0
   var y: Int = 0
+  var aim: Int = 0
 }
 
 enum Movement: String {
@@ -15,8 +16,8 @@ enum MovementError: Error {
   case illegalCommand
 }
 
-func computePosition(movementCommands: [String]) throws -> Position {
-  var pos = Position()
+func computePosition(movementCommands: [String]) throws -> SubmarinePosition {
+  var pos = SubmarinePosition()
   
   try movementCommands.forEach {
     let raw = $0.split(separator: " ")
@@ -39,6 +40,30 @@ func computePosition(movementCommands: [String]) throws -> Position {
   return pos
 }
 
+func computeAimedPosition(movementCommands: [String]) throws -> SubmarinePosition {
+  var pos = SubmarinePosition()
+  
+  try movementCommands.forEach {
+    let raw = $0.split(separator: " ")
+    guard raw.count == 2,
+            let movement = Movement(rawValue: String(raw[0])),
+            let magnitude = Int(raw[1])
+    else { throw MovementError.illegalCommand }
+    
+    
+    switch movement {
+    case .forward:
+      pos.x += magnitude
+      pos.y += pos.aim * magnitude
+    case .up:
+      pos.aim -= magnitude
+    case .down:
+      pos.aim += magnitude
+    }
+  }
+  
+  return pos
+}
 
 let input = [
   "forward 2", "down 7", "down 8", "forward 9", "down 8", "forward 9", "forward 8", "down 3", "forward 8",
@@ -155,5 +180,8 @@ let input = [
   "forward 6"
 ]
 
-let endPos = try computePosition(movementCommands: input)
-print(endPos.x * endPos.y)
+let endPos1 = try computePosition(movementCommands: input)
+print(endPos1.x * endPos1.y)
+
+let endPos2 = try computeAimedPosition(movementCommands: input)
+print(endPos2.x * endPos2.y)

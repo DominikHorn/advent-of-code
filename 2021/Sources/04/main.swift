@@ -177,6 +177,34 @@ struct BingoGame {
     return nil
   }
   
+  func findLastWinning() -> (boardScore: Int, winningNumber: Int)? {
+    var boards = boards
+    var wonBoards = Set<Int>()
+   
+    // apply all numbers in succession until we find a winner
+    for drawn in drawOrder {
+      for i in boards.indices {
+        guard !wonBoards.contains(i) else {
+          continue
+        }
+        
+        // update board
+        boards[i].mark(number: drawn)
+        
+        // determine if we have a winner
+        if boards[i].hasWon() {
+          wonBoards.insert(i)
+          
+          if wonBoards.count == boards.count {
+            return (boards[i].score(), drawn)
+          }
+        }
+      }
+    }
+    
+    return nil
+  }
+  
   enum ParsingError: Error {
     case invalidDrawOrderFormat
     case invalidDrawOrderNumber(_: String)
@@ -815,10 +843,16 @@ do {
   if let testFirstWinning = testGame.findFirstWinning() {
     print(testFirstWinning)
   }
+  if let testLastWinning = testGame.findLastWinning() {
+    print(testLastWinning)
+  }
   
   let game = try BingoGame(description: input)
   if let firstWinning = game.findFirstWinning() {
     print(firstWinning.boardScore * firstWinning.winningNumber)
+  }
+  if let lastWinning = game.findLastWinning() {
+    print(lastWinning.boardScore * lastWinning.winningNumber)
   }
 } catch {
   print("\(error): \(error.localizedDescription)")

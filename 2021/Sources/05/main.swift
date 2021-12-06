@@ -71,8 +71,18 @@ struct Point: Hashable {
     sqrt(Double((x * x) + (y * y)))
   }
   
-  func rasterNormalized() -> Point {
-    .init(x: x / Int(magnitude), y: y / Int(magnitude))
+  func rasterNormalized() throws -> Point {
+    let xMag = abs(x)
+    let yMag = abs(y)
+    
+    guard xMag == 0 || yMag == 0 || xMag == yMag else {
+      throw PuzzleError.invalidRasterization
+    }
+    
+    return .init(
+      x: xMag > 0 ? x / xMag : 0,
+      y: yMag > 0 ? y / yMag : 0
+    )
   }
   
   static func -(lhs: Point, rhs: Point) -> Point {
@@ -86,6 +96,10 @@ struct Point: Hashable {
   static func +=(lhs: inout Point, rhs: Point) {
     lhs.x += rhs.x
     lhs.y += rhs.y
+  }
+  
+  enum PuzzleError: Error {
+    case invalidRasterization
   }
   
   enum ParsingError: Error {
@@ -118,18 +132,7 @@ struct Line: Hashable {
   
   func coveredPoints() throws -> Set<Point> {
     var res = Set<Point>()
-    let fullStep = end - start
-    let stepMagnitude = fullStep.magnitude
-    
-    // line must be vertical or horizontal
-    guard fullStep.x == 0 || fullStep.y == 0, Double(Int(stepMagnitude)) == stepMagnitude else {
-      return []
-    }
-    
-    let step = fullStep.rasterNormalized()
-    guard (step.x == 0 && abs(step.y) == 1) || (abs(step.x) == 1 && step.y == 0) else {
-      return []
-    }
+    let step = try (end - start).rasterNormalized()
     
     var point = start
     while point != end {
@@ -139,6 +142,10 @@ struct Line: Hashable {
     res.insert(end)
     
     return res
+  }
+  
+  var isStraight: Bool {
+    (end - start).x == 0 || (end - start).y == 0
   }
   
   enum ParsingError: Error {
@@ -717,7 +724,11 @@ let input = """
 """
 
 let testCS = try CoordinateSystem(description: testInput)
+print(testCS.points.filter { $0.value.filter({ $0.isStraight }).count >= 2 }.count)
 print(testCS.points.filter { $0.value.count >= 2 }.count)
 
+
 let cs = try CoordinateSystem(description: input)
+// 5294
+print(cs.points.filter { $0.value.filter({ $0.isStraight }).count >= 2 }.count)
 print(cs.points.filter { $0.value.count >= 2 }.count)

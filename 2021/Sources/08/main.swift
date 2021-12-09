@@ -2,50 +2,50 @@ import Foundation
 
 /**
  --- Day 8: Seven Segment Search ---
-
+ 
  You barely reach the safety of the cave when the whale smashes into the cave mouth, collapsing it. Sensors indicate another exit to this cave at a much greater depth, so you have no choice but to press on.
-
+ 
  As your submarine slowly makes its way through the cave system, you notice that the four-digit seven-segment displays in your submarine are malfunctioning; they must have been damaged during the escape. You'll be in a lot of trouble without them, so you'd better figure out what's wrong.
-
+ 
  Each digit of a seven-segment display is rendered by turning on or off any of seven segments named a through g:
-
-   0:      1:      2:      3:      4:
-  aaaa    ....    aaaa    aaaa    ....
+ 
+ 0:      1:      2:      3:      4:
+ aaaa    ....    aaaa    aaaa    ....
  b    c  .    c  .    c  .    c  b    c
  b    c  .    c  .    c  .    c  b    c
-  ....    ....    dddd    dddd    dddd
+ ....    ....    dddd    dddd    dddd
  e    f  .    f  e    .  .    f  .    f
  e    f  .    f  e    .  .    f  .    f
-  gggg    ....    gggg    gggg    ....
-
-   5:      6:      7:      8:      9:
-  aaaa    aaaa    aaaa    aaaa    aaaa
+ gggg    ....    gggg    gggg    ....
+ 
+ 5:      6:      7:      8:      9:
+ aaaa    aaaa    aaaa    aaaa    aaaa
  b    .  b    .  .    c  b    c  b    c
  b    .  b    .  .    c  b    c  b    c
-  dddd    dddd    ....    dddd    dddd
+ dddd    dddd    ....    dddd    dddd
  .    f  e    f  .    f  e    f  .    f
  .    f  e    f  .    f  e    f  .    f
-  gggg    gggg    ....    gggg    gggg
+ gggg    gggg    ....    gggg    gggg
  So, to render a 1, only segments c and f would be turned on; the rest would be off. To render a 7, only segments a, c, and f would be turned on.
-
+ 
  The problem is that the signals which control the segments have been mixed up on each display. The submarine is still trying to display numbers by producing output on signal wires a through g, but those wires are connected to segments randomly. Worse, the wire/segment connections are mixed up separately for each four-digit display! (All of the digits within a display use the same connections, though.)
-
+ 
  So, you might know that only signal wires b and g are turned on, but that doesn't mean segments b and g are turned on: the only digit that uses two segments is 1, so it must mean segments c and f are meant to be on. With just that information, you still can't tell which wire (b/g) goes to which segment (c/f). For that, you'll need to collect more information.
-
+ 
  For each display, you watch the changing signals for a while, make a note of all ten unique signal patterns you see, and then write down a single four digit output value (your puzzle input). Using the signal patterns, you should be able to work out which pattern corresponds to which digit.
-
+ 
  For example, here is what you might see in a single entry in your notes:
-
+ 
  acedgfb cdfbe gcdfa fbcad dab cefabd cdfgeb eafb cagedb ab |
  cdfeb fcadb cdfeb cdbaf
  (The entry is wrapped here to two lines so it fits; in your notes, it will all be on a single line.)
-
+ 
  Each entry consists of ten unique signal patterns, a | delimiter, and finally the four digit output value. Within an entry, the same wire/segment connections are used (but you don't know what the connections actually are). The unique signal patterns correspond to the ten different ways the submarine tries to render a digit using the current wire/segment connections. Because 7 is the only digit that uses three segments, dab in the above example means that to render a 7, signal lines d, a, and b are on. Because 4 is the only digit that uses four segments, eafb means that to render a 4, signal lines e, a, f, and b are on.
-
+ 
  Using this information, you should be able to work out which combination of signal wires corresponds to each of the ten digits. Then, you can decode the four digit output value. Unfortunately, in the above example, all of the digits in the output value (cdfeb fcadb cdfeb cdbaf) use five segments and are more difficult to deduce.
-
+ 
  For now, focus on the easy digits. Consider this larger example:
-
+ 
  be cfbegad cbdgef fgaecd cgeb fdcge agebfd fecdb fabcd edb |
  fdgacbe cefdb cefbgd gcbe
  edbfga begcd cbg gc gcadebf fbgde acbgfd abcde gfcbed gfec |
@@ -67,8 +67,59 @@ import Foundation
  gcafb gcf dcaebfg ecagb gf abcdeg gaef cafbge fdbac fegbdc |
  fgae cfgab fg bagce
  Because the digits 1, 4, 7, and 8 each use a unique number of segments, you should be able to tell which combinations of signals correspond to those digits. Counting only digits in the output values (the part after | on each line), in the above example, there are 26 instances of digits that use a unique number of segments (highlighted above).
-
+ 
  In the output values, how many times do digits 1, 4, 7, or 8 appear?
+ 
+ --- Part Two ---
+ 
+ Through a little deduction, you should now be able to determine the remaining digits. Consider again the first example above:
+ 
+ acedgfb cdfbe gcdfa fbcad dab cefabd cdfgeb eafb cagedb ab |
+ cdfeb fcadb cdfeb cdbaf
+ After some careful analysis, the mapping between signal wires and segments only make sense in the following configuration:
+ 
+ dddd
+ e    a
+ e    a
+ ffff
+ g    b
+ g    b
+ cccc
+ So, the unique signal patterns would correspond to the following digits:
+ 
+ acedgfb: 8
+ cdfbe: 5
+ gcdfa: 2
+ fbcad: 3
+ dab: 7
+ cefabd: 9
+ cdfgeb: 6
+ eafb: 4
+ cagedb: 0
+ ab: 1
+ Then, the four digits of the output value can be decoded:
+ 
+ cdfeb: 5
+ fcadb: 3
+ cdfeb: 5
+ cdbaf: 3
+ Therefore, the output value for this entry is 5353.
+ 
+ Following this same process for each entry in the second, larger example above, the output value of each entry can be determined:
+ 
+ fdgacbe cefdb cefbgd gcbe: 8394
+ fcgedb cgb dgebacf gc: 9781
+ cg cg fdcagb cbg: 1197
+ efabcd cedba gadfec cb: 9361
+ gecf egdcabf bgf bfgea: 4873
+ gebdcfa ecba ca fadegcb: 8418
+ cefg dcbef fcge gbcadfe: 4548
+ ed bcgafe cdgba cbgef: 1625
+ gbdfcae bgc cg cgb: 8717
+ fgae cfgab fg bagce: 4315
+ Adding all of the output values in this larger example produces 61229.
+ 
+ For each entry, determine all of the wire/segment connections and decode the four-digit output values. What do you get if you add up all of the output values?
  */
 
 enum ParsingError: Error {
@@ -78,7 +129,7 @@ enum ParsingError: Error {
   case invalidSignal(_ raw: Character)
 }
 
-enum Signal: Character {
+enum Signal: Character, CaseIterable {
   case a = "a"
   case b = "b"
   case c = "c"
@@ -86,6 +137,16 @@ enum Signal: Character {
   case e = "e"
   case f = "f"
   case g = "g"
+  
+  static var all: Set<Signal> {
+    Set(Self.allCases)
+  }
+}
+
+extension Signal: CustomStringConvertible {
+  var description: String {
+    String(rawValue)
+  }
 }
 
 typealias Observation = Set<Signal>
@@ -98,9 +159,27 @@ extension Observation {
       return signal
     })
   }
+}
+
+infix operator ∩: MultiplicationPrecedence
+infix operator ∪: AdditionPrecedence
+extension SetAlgebra {
+  static func -(lhs: Self, rhs: Self) -> Self {
+    lhs.subtracting(rhs)
+  }
   
-  func candidates() -> Set<Digit> {
-    Digit.candidates(forSignalCount: count)
+  static func ∪(lhs: Self, rhs: Self) -> Self {
+    lhs.union(rhs)
+  }
+  
+  static func ∩(lhs: Self, rhs: Self) -> Self {
+    lhs.intersection(rhs)
+  }
+}
+
+extension Sequence where Element == Observation {
+  var unambiguousCount: Int {
+    filter { Digit.candidates(forSignalCount: $0.count).count == 1 }.count
   }
 }
 
@@ -118,33 +197,60 @@ extension Set where Element == Signal {
   }
 }
 
-enum Digit: CaseIterable {
-  case zero
-  case one
-  case two
-  case three
-  case four
-  case five
-  case six
-  case seven
-  case eight
-  case nine
+enum Digit: Character, CaseIterable {
+  case zero = "0"
+  case one = "1"
+  case two = "2"
+  case three = "3"
+  case four = "4"
+  case five = "5"
+  case six = "6"
+  case seven = "7"
+  case eight = "8"
+  case nine = "9"
   
-  var signalCount: Int {
+  var intValue: Int {
     switch self {
-    case .one:
-      return 2
-    case .seven:
-      return 3
-    case .four:
-      return 4
-    case .two, .three, .five:
-      return 5
-    case .zero, .six, .nine:
-      return 6
-    case .eight:
-      return 7
+    case .zero: return 0
+    case .one: return 1
+    case .two: return 2
+    case .three: return 3
+    case .four: return 4
+    case .five: return 5
+    case .six: return 6
+    case .seven: return 7
+    case .eight: return 8
+    case .nine: return 9
     }
+  }
+  
+  var signals: Set<Signal> {
+    switch self {
+    case .zero:
+      return [.a, .b, .c, .e, .f, .g]
+    case .one:
+      return [.c, .f]
+    case .two:
+      return [.a, .c, .d, .e, .g]
+    case .three:
+      return [.a, .c, .d, .f, .g]
+    case .four:
+      return [.b, .c, .d, .f]
+    case .five:
+      return [.a, .b, .d, .f, .g]
+    case .six:
+      return [.a, .b, .d, .e, .f, .g]
+    case .seven:
+      return [.a, .c, .f]
+    case .eight:
+      return [.a, .b, .c, .d, .e, .f, .g]
+    case .nine:
+      return [.a, .b, .c, .d, .f, .g]
+    }
+  }
+  
+  static func from(signals: Set<Signal>) -> Digit? {
+    Self.allCases.first { $0.signals == signals }
   }
   
   private static var digitsForSignalCount = [Int: Set<Digit>]()
@@ -155,9 +261,137 @@ enum Digit: CaseIterable {
     }
     
     // compute result
-    let result = Set(allCases.filter { $0.signalCount == signalCount })
+    let result = Set(allCases.filter { $0.signals.count == signalCount })
     digitsForSignalCount[signalCount] = result
     return result
+  }
+  
+  static var all: Set<Digit> {
+    Set(Self.allCases)
+  }
+}
+
+extension Digit: CustomStringConvertible {
+  var description: String {
+    "\(rawValue)"
+  }
+}
+
+struct SignalMapping {
+  private var inputMap: [Signal: Set<Signal>]
+  private var targetOutputs: [Observation]
+  
+  /// initializes with no knowledge, i.e., all mappings possible
+  init(targetOutputs: [Observation]) {
+    self.inputMap = Signal.allCases.reduce(into: [:]) { $0[$1] = Set(Signal.allCases) }
+    self.targetOutputs = targetOutputs
+  }
+  
+  func outputs(forInput input: Signal) -> Set<Signal> {
+    // this is one of the rare cases where this is legal
+    // since inputs are all \in Signal and we initialize
+    // inputMap using the compiler synthesized allCases!
+    return inputMap[input]!
+  }
+  
+  func output(forInput input: Signal) -> Signal {
+    return inputMap[input]!.first!
+  }
+  
+  mutating func set(_ s: Set<Signal>, forInput input: Signal) {
+    guard !isContradiction else { return }
+    
+    if s.count == 1, let output = s.first {
+      solve(input: input, output: output)
+    } else {
+      let existingOutputs = outputs(forInput: input)
+      s.forEach { newOutput in
+        precondition(existingOutputs.contains(newOutput))
+      }
+      inputMap[input] = s
+    }
+  }
+  
+  mutating func solve(input: Signal, output: Signal) {
+    guard !isContradiction, outputs(forInput: input).contains(output) else { return }
+    
+    let currentOutputs = outputs(forInput: input)
+    precondition(currentOutputs.count > 0)
+    if currentOutputs.count == 1 && currentOutputs.first == output {
+      // unnecessary work -> see if we can eliminate this
+      return
+    }
+    
+    // solving one might solve the next etc
+    var solvedQueue = [(input, output)]
+    while !solvedQueue.isEmpty {
+      let solved = solvedQueue.first!
+      solvedQueue = .init(solvedQueue.dropFirst())
+      
+      inputMap[solved.0] = [solved.1]
+      Signal.all.forEach { signal in
+        // don't touch already solved outputs
+        var outputs = outputs(forInput: signal)
+        guard outputs.count > 1 else { return }
+        
+        outputs.remove(solved.1)
+        inputMap[signal] = outputs
+        
+        if outputs.count == 1 {
+          solvedQueue.append((signal, outputs.first!))
+        }
+      }
+    }
+  }
+ 
+  var isContradiction: Bool {
+    for m1 in inputMap {
+      // empty assignment is contradiction
+      if m1.value.count == 0 { return true }
+      
+      // assignments such that no solution may be found is contradiction
+      if inputMap.filter({ $0.value == m1.value }).count > m1.value.count {
+        return true
+      }
+    }
+    
+    return false
+  }
+  
+  var isSolved: Bool {
+    // solution -> each has unique! mapping
+    for m1 in inputMap {
+      if m1.value.count != 1 { return false }
+      
+      for m2 in inputMap where m1.key != m2.key {
+        if m2.value == m1.value { return false }
+      }
+    }
+    
+    // solution has to also solve the puzzle
+    if targetOutputs.compactMap(read(observation:)).count != targetOutputs.count {
+      return false
+    }
+    
+    return true
+  }
+  
+  func read(observation: Observation) -> Digit? {
+    Digit.from(signals: Set(observation.map { output(forInput: $0) }))
+  }
+}
+
+extension SignalMapping: CustomStringConvertible {
+  var description: String {
+    """
+    a -> \(outputs(forInput: .a).sorted(by: {$0.rawValue < $1.rawValue}))
+    b -> \(outputs(forInput: .b).sorted(by: {$0.rawValue < $1.rawValue}))
+    c -> \(outputs(forInput: .c).sorted(by: {$0.rawValue < $1.rawValue}))
+    d -> \(outputs(forInput: .d).sorted(by: {$0.rawValue < $1.rawValue}))
+    e -> \(outputs(forInput: .e).sorted(by: {$0.rawValue < $1.rawValue}))
+    f -> \(outputs(forInput: .f).sorted(by: {$0.rawValue < $1.rawValue}))
+    g -> \(outputs(forInput: .g).sorted(by: {$0.rawValue < $1.rawValue}))
+    """
   }
 }
 
@@ -184,10 +418,112 @@ struct Measurement {
     outputs = try rawOutputs.map { try .init(description: $0) }
   }
   
-  func countUnambiguousOutputs() -> Int {
-    outputs
-      .filter { $0.candidates().count == 1 }
-      .count
+  /// Solves, may be sped up by starting from a well known position
+  private func computeWireMapping(currentMapping: SignalMapping, possibleDigits: Set<Digit> = Digit.all, remainingObservations: Set<Observation>) -> SignalMapping? {
+    precondition(possibleDigits.count == remainingObservations.count)
+    
+    for observation in remainingObservations {
+      let conceivableSolutions = Digit.candidates(forSignalCount: observation.count) ∩ possibleDigits
+      for digit in conceivableSolutions {
+        var updatedMap = currentMapping
+        observation.forEach { inputSignal in
+          updatedMap.set(digit.signals ∩ updatedMap.outputs(forInput: inputSignal), forInput: inputSignal)
+        }
+        
+        if !updatedMap.isContradiction {
+          if updatedMap.isSolved {
+            return updatedMap
+          }
+          
+          // no contradiction so far, assume this is actually our assignment
+          var digits = possibleDigits
+          digits.remove(digit)
+          var observations = remainingObservations
+          observations.remove(observation)
+          if let mapping = computeWireMapping(currentMapping: updatedMap, possibleDigits: digits, remainingObservations: observations) {
+            // mapping should be solved at this point (right?)
+            return mapping
+          }
+        }
+      }
+    }
+    
+    return nil
+  }
+  
+  /// Use inherent system knowledge to prune the search space as much as possible
+  func applySystemKnowledge(mapping: inout SignalMapping, digits: inout Set<Digit>, observations: inout Set<Observation>) throws {
+    guard let obs1 = observations.first(where: { $0.count == Digit.one.signals.count }),
+          let obs4 = observations.first(where: { $0.count == Digit.four.signals.count }),
+          let obs7 = observations.first(where: { $0.count == Digit.seven.signals.count }),
+          let obs8 = observations.first(where: { $0.count == Digit.eight.signals.count })
+    else {
+      throw PuzzleError.invalidInput
+    }
+    /*
+     1 -> c, f
+     4 -> b, c, d, f
+     7 -> a, c, f
+     8 -> a, b, c, d, e, f, g
+     */
+    
+    
+    // (1) uniquely identifiable observations 1,4,7,8 and their digits can be eliminated
+    [obs1, obs4, obs7, obs8].forEach { observations.remove($0) }
+    [.one, .four, .seven, .eight].forEach { digits.remove($0) }
+
+    // (2) signals not enabled in one, four and seven's combined observation are either 'e' or 'g'
+    (Signal.all - (obs1 ∪ obs4 ∪ obs7)).forEach { mapping.set([.e, .g], forInput: $0) }
+    
+    // (3) signal in seven but not in one is 'a'
+    (obs7 - obs1).forEach { mapping.set([.a], forInput: $0) }
+    
+    // (4) signals not enabled in one but in four are either 'b' or 'd'
+    (obs4 - obs1).forEach { mapping.set([.b, .d], forInput: $0) }
+    
+    if mapping.isContradiction {
+      throw PuzzleError.invalidAssumptions
+    }
+  }
+  
+  func demangle() throws -> SignalMapping? {
+    var digits = Digit.all
+    var observations = Set(observations)
+    var map = SignalMapping(targetOutputs: outputs)
+    
+    // prune search tree with system knowledge
+    try applySystemKnowledge(mapping: &map, digits: &digits, observations: &observations)
+    
+    guard let solvedMap = computeWireMapping(
+      currentMapping: map,
+      possibleDigits: digits,
+      remainingObservations: observations
+    ) else {
+      throw PuzzleError.invalidInput
+    }
+    
+    precondition(solvedMap.isSolved && !solvedMap.isContradiction)
+    return solvedMap
+  }
+  
+  func demangleAndRead() throws -> [Digit] {
+    guard let mapping = try demangle() else {
+      throw PuzzleError.noMappingFound
+    }
+    
+    let digits = outputs.compactMap(mapping.read(observation:))
+    guard digits.count == outputs.count else {
+      throw PuzzleError.invalidMapping
+    }
+    
+    return digits
+  }
+  
+  enum PuzzleError: Error {
+    case invalidInput
+    case invalidAssumptions
+    case noMappingFound
+    case invalidMapping
   }
 }
 
@@ -202,12 +538,25 @@ struct DisplayRepairer {
   func countUnambiguousOutputs() -> Int {
     measurements
       .reduce(0) { aggr, measurement in
-        aggr + measurement.countUnambiguousOutputs()
+        aggr + measurement.outputs.unambiguousCount
       }
+  }
+  
+  func readAndSum() throws -> Int {
+    let nums = try measurements
+      .map { measurement -> Int in
+        let digits = try measurement.demangleAndRead()
+        return digits.reduce(0) { 10 * $0 + $1.intValue }
+      }
+    print(nums)
+    
+    return nums.reduce(0) { $0 + $1 }
   }
 }
 
-let testInput = """
+let testInput1 = "acedgfb cdfbe gcdfa fbcad dab cefabd cdfgeb eafb cagedb ab | cdfeb fcadb cdfeb cdbaf"
+
+let testInput2 = """
 be cfbegad cbdgef fgaecd cgeb fdcge agebfd fecdb fabcd edb | fdgacbe cefdb cefbgd gcbe
 edbfga begcd cbg gc gcadebf fbgde acbgfd abcde gfcbed gfec | fcgedb cgb dgebacf gc
 fgaebd cg bdaec gdafb agbcfd gdcbef bgcad gfac gcb cdgabef | cg cg fdcagb cbg
@@ -423,9 +772,18 @@ fbcead gadb adebgfc ba aegcb caegf cab ecgfdb cbdeg aegbdc | decabg edcgb cgbfde
 bafegdc becgdf cdebfa ecg bfedc gc fcbge eafgdc cdbg aefgb | fbecd acfedb gbcd cfagde
 """
 
-
-let testDisplayRepairer = try DisplayRepairer(description: testInput)
+// test part 1
+let testDisplayRepairer = try DisplayRepairer(description: testInput2)
 print(testDisplayRepairer.countUnambiguousOutputs())
 
+// solve part 1
 let displayRepairer = try DisplayRepairer(description: input)
 print(displayRepairer.countUnambiguousOutputs())
+
+// test part 2
+let testMeasurement = try Measurement(description: testInput1[testInput1.startIndex..<testInput1.endIndex])
+print(try testMeasurement.demangleAndRead())
+print(try testDisplayRepairer.readAndSum())
+
+// solve part 2
+print(try displayRepairer.readAndSum())

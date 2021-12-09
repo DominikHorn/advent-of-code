@@ -13,6 +13,7 @@ let package = Package(
         .executableTarget(name: "04"),
         .executableTarget(name: "05"),
         .executableTarget(name: "06"),
-        .executableTarget(name: "07")
+        .executableTarget(name: "07"),
+        .executableTarget(name: "08")
     ]
 )

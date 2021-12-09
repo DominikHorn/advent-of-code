@@ -23,6 +23,46 @@ import Foundation
  The risk level of a low point is 1 plus its height. In the above example, the risk levels of the low points are 2, 1, 6, and 6. The sum of the risk levels of all low points in the heightmap is therefore 15.
 
  Find all of the low points on your heightmap. What is the sum of the risk levels of all low points on your heightmap?
+ 
+ --- Part Two ---
+
+ Next, you need to find the largest basins so you know what areas are most important to avoid.
+
+ A basin is all locations that eventually flow downward to a single low point. Therefore, every low point has a basin, although some basins are very small. Locations of height 9 do not count as being in any basin, and all other locations will always be part of exactly one basin.
+
+ The size of a basin is the number of locations within the basin, including the low point. The example above has four basins.
+
+ The top-left basin, size 3:
+
+ 2199943210
+ 3987894921
+ 9856789892
+ 8767896789
+ 9899965678
+ The top-right basin, size 9:
+
+ 2199943210
+ 3987894921
+ 9856789892
+ 8767896789
+ 9899965678
+ The middle basin, size 14:
+
+ 2199943210
+ 3987894921
+ 9856789892
+ 8767896789
+ 9899965678
+ The bottom-right basin, size 9:
+
+ 2199943210
+ 3987894921
+ 9856789892
+ 8767896789
+ 9899965678
+ Find the three largest basins and multiply their sizes together. In the above example, this is 9 * 14 * 9 = 1134.
+
+ What do you get if you multiply together the sizes of the three largest basins?
  */
 
 struct SmokeMap {
@@ -48,17 +88,22 @@ struct SmokeMap {
     return points[at.y][at.x]
   }
   
+  func neighbors(x: Int, y: Int) -> Set<Coordinate> {
+    [
+      .init(x: x, y: y-1),
+      .init(x: x, y: y+1),
+      .init(x: x-1, y: y),
+      .init(x: x+1, y: y)
+    ]
+  }
+  
+  
   func lowPoints() -> Set<Coordinate> {
     var res: Set<Coordinate> = []
     points.enumerated().forEach { y, l in
       l.enumerated().forEach { x, height in
-        let isLow = [
-          point(at: .init(x: x, y: y-1)),
-          point(at: .init(x: x, y: y+1)),
-          point(at: .init(x: x-1, y: y)),
-          point(at: .init(x: x+1, y: y))
-        ]
-          .compactMap { $0 }
+        let isLow = neighbors(x: x, y: y)
+          .compactMap { point(at: $0) }
           .allSatisfy { $0 > height }
         
         if isLow {
@@ -67,6 +112,48 @@ struct SmokeMap {
       }
     }
     return res
+  }
+  
+  typealias Basin = Set<Coordinate>
+  
+  func findBasins() -> Set<Basin> {
+    Set(
+      lowPoints().map { lowPoint -> Basin in
+        var basin = Basin()
+        var queue: [Coordinate] = [lowPoint]
+        
+        while !queue.isEmpty {
+          // This is O(n) but could be O(1) if we were using a real queue
+          let coord = queue.removeFirst()
+          guard let height = point(at: coord) else { continue }
+          
+          let newPoints = neighbors(x: coord.x, y: coord.y)
+            .filter {
+              if let h = point(at: $0), h < 9 {
+                return h > height
+              }
+              
+              return false
+            }
+          
+          // This is only amortized O(1) but could be
+          queue.append(contentsOf: newPoints)
+
+          basin.insert(coord)
+        }
+        
+        return basin
+      }
+    )
+  }
+  
+  func multiplyLargestThreeBasins() -> Int {
+    let sortedBasins = findBasins()
+      .sorted { $0.count > $1.count }
+    
+    guard sortedBasins.count >= 3 else { return 0 }
+    
+    return sortedBasins[0..<3].reduce(1) { $0 * $1.count }
   }
   
   func summedRisks(ofPoints points: Set<Coordinate>) -> UInt {
@@ -198,6 +285,8 @@ let input = """
 
 let testMap = try SmokeMap(description: testInput)
 print(testMap.summedRisks(ofPoints: testMap.lowPoints()))
+print(testMap.multiplyLargestThreeBasins())
 
 let map = try SmokeMap(description: input)
 print(map.summedRisks(ofPoints: map.lowPoints()))
+print(map.multiplyLargestThreeBasins())

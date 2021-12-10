@@ -5,7 +5,12 @@ import PackageDescription
 
 let package = Package(
     name: "2021",
-    dependencies: [],
+    dependencies: [
+      .package(
+        url: "https://github.com/apple/swift-collections.git",
+        .upToNextMajor(from: "1.0.0")
+      )
+    ],
     targets: [
         .executableTarget(name: "01"),
         .executableTarget(name: "02"),
@@ -16,6 +21,6 @@ let package = Package(
         .executableTarget(name: "07"),
         .executableTarget(name: "08"),
         .executableTarget(name: "09"),
-        .executableTarget(name: "10")
+        .executableTarget(name: "10", dependencies: [.product(name: "Collections", package: "swift-collections")])
     ]
 )

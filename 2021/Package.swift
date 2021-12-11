@@ -22,6 +22,6 @@ let package = Package(
         .executableTarget(name: "08"),
         .executableTarget(name: "09"),
         .executableTarget(name: "10", dependencies: [.product(name: "Collections", package: "swift-collections")]),
-        .executableTarget(name: "11")
+        .executableTarget(name: "11", dependencies: [.product(name: "Collections", package: "swift-collections")])
     ]
 )

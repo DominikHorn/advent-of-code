@@ -296,6 +296,49 @@ import DequeModule
  After 100 steps, there have been a total of 1656 flashes.
 
  Given the starting energy levels of the dumbo octopuses in your cavern, simulate 100 steps. How many total flashes are there after 100 steps?
+ 
+ --- Part Two ---
+
+ It seems like the individual flashes aren't bright enough to navigate. However, you might have a better option: the flashes seem to be synchronizing!
+
+ In the example above, the first time all octopuses flash simultaneously is step 195:
+
+ After step 193:
+ 5877777777
+ 8877777777
+ 7777777777
+ 7777777777
+ 7777777777
+ 7777777777
+ 7777777777
+ 7777777777
+ 7777777777
+ 7777777777
+
+ After step 194:
+ 6988888888
+ 9988888888
+ 8888888888
+ 8888888888
+ 8888888888
+ 8888888888
+ 8888888888
+ 8888888888
+ 8888888888
+ 8888888888
+
+ After step 195:
+ 0000000000
+ 0000000000
+ 0000000000
+ 0000000000
+ 0000000000
+ 0000000000
+ 0000000000
+ 0000000000
+ 0000000000
+ 0000000000
+ If you can calculate the exact moments when the octopuses will all flash simultaneously, you should be able to navigate through the cavern. What is the first step during which all octopuses flash?
  */
 
 enum ParsingError: Error {
@@ -308,7 +351,7 @@ struct Coordinate: Hashable {
 }
 
 struct DumboOctopus: Hashable {
-  private var power: UInt8
+  private(set) var power: UInt8
   
   init(initialPowerDescription: Character) throws {
     guard let power = UInt8("\(initialPowerDescription)") else {
@@ -341,6 +384,7 @@ extension DumboOctopus: CustomStringConvertible {
 struct World {
   var octopuses: [[DumboOctopus]]
   var flashes = 0
+  var stepCnt = 0
   
   init(description: String) throws {
     octopuses = try description
@@ -389,6 +433,24 @@ struct World {
         octopuses[y][x].finishStep()
       }
     }
+    
+    stepCnt += 1
+  }
+  
+  var allSynchronized: Bool {
+    guard let targetPower = octopuses.first?.first?.power else { return false }
+    return octopuses.allSatisfy {
+      $0.allSatisfy { $0.power == targetPower }
+    }
+  }
+  
+  /// steps until all octopus are synchronized, returns step count when that happens
+  mutating func stepUntilSynchronized() -> Int {
+    while !allSynchronized {
+      step()
+    }
+    
+    return stepCnt
   }
 }
 
@@ -430,7 +492,9 @@ let input = """
 var testWorld = try World(description: testInput)
 (0..<100).forEach { _ in testWorld.step() }
 print(testWorld.flashes)
+print(testWorld.stepUntilSynchronized())
 
 var world = try World(description: input)
 (0..<100).forEach { _ in world.step() }
 print(world.flashes)
+print(world.stepUntilSynchronized())

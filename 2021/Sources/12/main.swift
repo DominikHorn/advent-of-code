@@ -95,6 +95,52 @@ import Foundation
  pj-fs
  start-RW
  How many paths through this cave system are there that visit small caves at most once?
+ 
+ --- Part Two ---
+
+ After reviewing the available paths, you realize you might have time to visit a single small cave twice. Specifically, big caves can be visited any number of times, a single small cave can be visited at most twice, and the remaining small caves can be visited at most once. However, the caves named start and end can only be visited exactly once each: once you leave the start cave, you may not return to it, and once you reach the end cave, the path must end immediately.
+
+ Now, the 36 possible paths through the first example above are:
+
+ start,A,b,A,b,A,c,A,end
+ start,A,b,A,b,A,end
+ start,A,b,A,b,end
+ start,A,b,A,c,A,b,A,end
+ start,A,b,A,c,A,b,end
+ start,A,b,A,c,A,c,A,end
+ start,A,b,A,c,A,end
+ start,A,b,A,end
+ start,A,b,d,b,A,c,A,end
+ start,A,b,d,b,A,end
+ start,A,b,d,b,end
+ start,A,b,end
+ start,A,c,A,b,A,b,A,end
+ start,A,c,A,b,A,b,end
+ start,A,c,A,b,A,c,A,end
+ start,A,c,A,b,A,end
+ start,A,c,A,b,d,b,A,end
+ start,A,c,A,b,d,b,end
+ start,A,c,A,b,end
+ start,A,c,A,c,A,b,A,end
+ start,A,c,A,c,A,b,end
+ start,A,c,A,c,A,end
+ start,A,c,A,end
+ start,A,end
+ start,b,A,b,A,c,A,end
+ start,b,A,b,A,end
+ start,b,A,b,end
+ start,b,A,c,A,b,A,end
+ start,b,A,c,A,b,end
+ start,b,A,c,A,c,A,end
+ start,b,A,c,A,end
+ start,b,A,end
+ start,b,d,b,A,c,A,end
+ start,b,d,b,A,end
+ start,b,d,b,end
+ start,b,end
+ The slightly larger example above now has 103 paths through it, and the even larger example now has 3509 paths through it.
+
+ Given these new rules, how many paths through this cave system are there?
  */
 
 struct Cave: Hashable {
@@ -154,37 +200,52 @@ struct CaveSystem {
 
   typealias Path = [Cave]
 
-  private func visit(cave: Cave, previousPath: Path = [], previousSeen: Set<Cave> = []) -> Set<Path> {
+  private func visitEasy(cave: Cave, previousPath: Path = [], previousSeen: Set<Cave> = []) -> Set<Path> {
+    let path = previousPath + [cave]
     guard cave != .end else {
-      return [previousPath + [cave]]
+      return [path]
     }
     
-    let path = previousPath + [cave]
     var seen = previousSeen
     seen.insert(cave)
     
     return connections[cave]?
       .filter { !seen.contains($0) || $0.isLarge }
-      .reduce(into: []) { fullPaths, next in
-        visit(cave: next, previousPath: path, previousSeen: seen)
-          .forEach { fullPaths.insert($0) }
+      .reduce([]) { fullPaths, next in
+        fullPaths?.union(visitEasy(cave: next, previousPath: path, previousSeen: seen))
       } ?? []
   }
   
-  var allPaths: Set<Path> {
-    visit(cave: .start)
+  private func visitHard(cave: Cave, previousPath: Path = [], previousSeen: Set<Cave> = [.start], mayVisitTwice: Bool = true) -> Set<Path> {
+    let path = previousPath + [cave]
+    guard cave != .end else {
+      return [path]
+    }
+    
+    var seen = previousSeen
+    seen.insert(cave)
+    
+    return connections[cave]?
+      .filter { !seen.contains($0) || $0.isLarge }
+      .reduce([]) { fullPaths, next in
+        fullPaths?
+          .union(mayVisitTwice ? visitHard(cave: next, previousPath: path, previousSeen: previousSeen, mayVisitTwice: false) : [])
+          .union(visitHard(cave: next, previousPath: path, previousSeen: seen, mayVisitTwice: mayVisitTwice))
+      } ?? []
+  }
+  
+  var allEasyPaths: Set<Path> {
+    visitEasy(cave: .start)
+  }
+  
+  var allHardPaths: Set<Path> {
+    visitHard(cave: .start)
   }
   
   enum ParsingError: Error {
     case invalidConnection(_ raw: String)
   }
 }
-
-//extension Set where Element == CaveSystem.Path {
-//  func description: String {
-//    map { "\($0)" }.joined(separator: " -> ")
-//  }
-//}
 
 let testInput1 = """
 start-A
@@ -231,13 +292,13 @@ start-RW
 """
 
 let testSystem1 = try CaveSystem(description: testInput1)
-print(testSystem1.allPaths.count)
+print(testSystem1.allEasyPaths.count)
 
 let testSystem2 = try CaveSystem(description: testInput2)
-print(testSystem2.allPaths.count)
+print(testSystem2.allEasyPaths.count)
 
 let testSystem3 = try CaveSystem(description: testInput3)
-print(testSystem3.allPaths.count)
+print(testSystem3.allEasyPaths.count)
 
 let input = """
 HF-qu
@@ -263,4 +324,9 @@ CF-vt
 """
 
 let system = try CaveSystem(description: input)
-print(system.allPaths.count)
+print(system.allEasyPaths.count)
+
+print(testSystem1.allHardPaths.count)
+print(testSystem2.allHardPaths.count)
+print(testSystem3.allHardPaths.count)
+print(system.allHardPaths.count)

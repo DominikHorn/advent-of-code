@@ -102,6 +102,12 @@ import Foundation
  The instructions made a square!
 
  The transparent paper is pretty big, so for now, focus on just completing the first fold. After the first fold in the example above, 17 dots are visible - dots that end up overlapping after the fold is completed count as a single dot.
+ 
+ --- Part Two ---
+
+ Finish folding the transparent paper according to the instructions. The manual says the code is always eight capital letters.
+
+ What code do you use to activate the infrared thermal imaging camera system?
  */
 
 struct Dot: Hashable {
@@ -189,10 +195,7 @@ struct TransparentPaper {
     }
   }
   
-  mutating func execute(max: Int = -1 ) throws {
-    guard commands.count > 0 else { return }
-    
-    let command = commands.removeFirst()
+  mutating func execute(command: Command) throws {
     switch command {
     case .foldAlong(axis: let axis, coordinate: let coordinate):
       switch axis {
@@ -224,6 +227,18 @@ struct TransparentPaper {
     }
   }
   
+  mutating func executeOne() throws {
+    guard commands.count > 0 else { return }
+    try execute(command: commands.removeFirst())
+  }
+  
+  mutating func executeRemaining() throws {
+    try commands.forEach {
+      try execute(command: $0)
+    }
+    commands.removeAll()
+  }
+  
   var visibleDotCount: Int {
     dots.count
   }
@@ -239,16 +254,20 @@ struct TransparentPaper {
 }
 
 extension TransparentPaper: CustomStringConvertible {
-  var description: String {
-    "\n"
-    +
+  func representation(dotSymbol: Character = "#", emptySymbol: Character = ".") -> String {
     (0...rect.size.height).map { y in
       (0...rect.size.width).map { x in
-        dots.contains(.init(x: x, y: y)) ? "#" : "."
+        dots.contains(.init(x: x, y: y)) ? "\(dotSymbol)" : "\(emptySymbol)"
       }
       .joined()
     }
     .joined(separator: "\n")
+  }
+  
+  var description: String {
+    "\n"
+    +
+    representation()
   }
 }
 
@@ -1297,9 +1316,12 @@ fold along y=6
 """
 
 var testPaper = try TransparentPaper(description: testInput)
-try testPaper.execute(max: 1)
+try testPaper.executeOne()
 print(testPaper.visibleDotCount)
 
 var paper = try TransparentPaper(description: input)
-try paper.execute(max: 1)
+try paper.executeOne()
 print(paper.visibleDotCount)
+
+try paper.executeRemaining()
+print(paper.representation(emptySymbol: " "))

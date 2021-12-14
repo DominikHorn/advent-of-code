@@ -50,7 +50,16 @@ import Foundation
  This polymer grows quickly. After step 5, it has length 97; After step 10, it has length 3073. After step 10, B occurs 1749 times, C occurs 298 times, H occurs 161 times, and N occurs 865 times; taking the quantity of the most common element (B, 1749) and subtracting the quantity of the least common element (H, 161) produces 1749 - 161 = 1588.
 
  Apply 10 steps of pair insertion to the polymer template and find the most and least common elements in the result. What do you get if you take the quantity of the most common element and subtract the quantity of the least common element?
+
+ --- Part Two ---
+
+ The resulting polymer isn't nearly strong enough to reinforce the submarine. You'll need to run more steps of the pair insertion process; a total of 40 steps should do it.
+
+ In the above example, the most common element is B (occurring 2192039569602 times) and the least common element is H (occurring 3849876073 times); subtracting these produces 2188189693529.
+
+ Apply 40 steps of pair insertion to the polymer template and find the most and least common elements in the result. What do you get if you take the quantity of the most common element and subtract the quantity of the least common element?
  */
+
 struct Styrene: Hashable {
   var char: Character
   
@@ -75,38 +84,15 @@ enum ParsingError: Error {
   case ambiguousTransforms
 }
 
+extension Dictionary where Value == Int {
+  mutating func insert(_ value: Value, orAddTo key: Key) {
+    self[key] = (self[key] ?? 0) + value
+  }
+}
+
 struct Polymerizer {
   var transforms: [Transform.Input: Transform.Output]
-  
-  private var _state: Node
-  var state: Node {
-    mutating get {
-      // copy on write
-      if !isKnownUniquelyReferenced(&_state) {
-        _state = _state.copy() as! Node
-      }
-      return _state
-    }
-    set {
-      _state = newValue
-    }
-  }
-  
-  class Node: NSCopying {
-    var styrene: Styrene
-    var next: Node?
-    
-    init(styrene: Styrene, next: Node? = nil) {
-      self.styrene = styrene
-      self.next = next
-    }
-    
-    func copy(with zone: NSZone? = nil) -> Any {
-      let copy = Node(styrene: styrene)
-      copy.next = next?.copy(with: zone) as? Node
-      return copy
-    }
-  }
+  var start: [Styrene]
   
   struct Transform: Hashable {
     struct Input: Hashable {
@@ -155,15 +141,7 @@ struct Polymerizer {
     }
     
 
-    // create nodes
-    let nodes: [Node] = try rawStart.map {
-      Node(styrene: try Styrene($0))
-    }
-    // link up nodes
-    (1..<nodes.count).forEach { i in nodes[i-1].next = nodes[i] }
-    
-    // retain first node
-    self._state = nodes[0]
+    self.start = try rawStart.map { try Styrene($0) }
     self.transforms = .init()
     
     // initialize transforms
@@ -177,37 +155,51 @@ struct Polymerizer {
     }
   }
   
-  mutating func step() {
-    var previous = state
-    
-    while let current = previous.next {
-      if let output = transforms[.init(left: previous.styrene, right: current.styrene)] {
-        previous.next = .init(styrene: output, next: current)
-      }
-      
-      previous = current
-    }
+  struct CacheKey: Hashable {
+    var left: Styrene
+    var right: Styrene
+    var remainingSteps: Int
   }
   
-  func after(step: Int) -> Polymerizer {
-    var res = self
-    
-    (0..<step).forEach { _ in
-      res.step()
+  /// counts after a single step
+  private func count(left: Styrene, right: Styrene, remainingSteps: Int, cache: inout [CacheKey: [Styrene: Int]]) -> [Styrene: Int] {
+    if let cachedRes = cache[.init(left: left, right: right, remainingSteps: remainingSteps)] {
+      return cachedRes
     }
+    
+    guard remainingSteps > 0 else {
+      return [:]
+    }
+      
+    var res = [Styrene: Int]()
+    
+    if let out = transforms[.init(left: left, right: right)] {
+      res.insert(1, orAddTo: out)
+    
+      count(left: left, right: out, remainingSteps: remainingSteps-1, cache: &cache)
+        .forEach { res.insert($0.value, orAddTo: $0.key) }
+      count(left: out, right: right, remainingSteps: remainingSteps-1, cache: &cache)
+        .forEach { res.insert($0.value, orAddTo: $0.key) }
+    }
+    
+    cache[.init(left: left, right: right, remainingSteps: remainingSteps)] = res
     
     return res
   }
   
-  // counts how often each styrene appears
-  func counts() -> [Styrene: Int] {
+  func counts(afterStep step: Int) -> [Styrene: Int] {
     var res = [Styrene: Int]()
+    var cache = [CacheKey: [Styrene: Int]]()
     
-    var node: Node? = _state
-    while let current = node {
-      res[current.styrene] = (res[current.styrene] ?? 0) + 1
+    res.insert(1, orAddTo: start[0])
+    (1..<start.count).forEach { i in
+      let left = start[i-1]
+      let right = start[i]
+
+      res.insert(1, orAddTo: right)
       
-      node = current.next
+      count(left: left, right: right, remainingSteps: step, cache: &cache)
+        .forEach { res.insert($0.value, orAddTo: $0.key) }
     }
     
     return res
@@ -216,14 +208,7 @@ struct Polymerizer {
 
 extension Polymerizer: CustomStringConvertible {
   var description: String {
-    var res = ""
-    var current: Node? = _state
-    while let node = current {
-      res = "\(res)\(node.styrene)"
-      current = node.next
-    }
-    
-    return res
+    start.map { $0.description }.joined()
   }
 }
 
@@ -357,18 +342,16 @@ enum ImplementationError: Error {
   case wrongStep
 }
 
-let testPolymerizer = try Polymerizer(description: testInput)
-guard testPolymerizer.description == "NNCB",
-      testPolymerizer.after(step: 1).description == "NCNBCHB",
-      testPolymerizer.after(step: 2).description == "NBCCNBBBCBHCB",
-      testPolymerizer.after(step: 3).description == "NBBBCNCCNBBNBNBBCHBHHBCHB",
-      testPolymerizer.after(step: 4).description == "NBBNBNBBCCNBCNCCNBBNBBNBBBNBBNBBCBHCBHHNHCBBCBHCB"
-else {
-  throw ImplementationError.wrongStep
-}
-let testCounts = testPolymerizer.after(step: 10).counts().sorted { $0.value > $1.value }
-print(testCounts.first!.value - testCounts.last!.value)
+var testPolymerizer = try Polymerizer(description: testInput)
+let testCounts1 = testPolymerizer.counts(afterStep: 10).sorted { $0.value > $1.value }
+print(testCounts1.first!.value - testCounts1.last!.value)
 
-let polymerizer = try Polymerizer(description: input)
-let counts = polymerizer.after(step: 10).counts().sorted { $0.value > $1.value }
-print(counts.first!.value - counts.last!.value)
+var polymerizer = try Polymerizer(description: input)
+let counts1 = polymerizer.counts(afterStep: 10).sorted { $0.value > $1.value }
+print(counts1.first!.value - counts1.last!.value)
+
+let testCounts2 = testPolymerizer.counts(afterStep: 40).sorted { $0.value > $1.value }
+print(testCounts2.first!.value - testCounts2.last!.value)
+
+let counts2 = polymerizer.counts(afterStep: 40).sorted { $0.value > $1.value }
+print(counts2.first!.value - counts2.last!.value)

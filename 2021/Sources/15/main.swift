@@ -1,5 +1,4 @@
 import Foundation
-import Collections
 
 /*
  --- Day 15: Chiton ---
@@ -108,12 +107,6 @@ struct NodeList {
     let swap = elements[i1]
     elements[i1] = elements[i2]
     elements[i2] = swap
-    
-    // verify that we did not accidentally break index!
-    assert(elements.allSatisfy {
-      index[$0.coordinate] != nil
-      && elements[index[$0.coordinate]!] == $0
-    })
   }
   
   /// sift element at  `index` up until heap invariant is restored. Returns final index
@@ -187,9 +180,6 @@ struct NodeList {
     index.removeValue(forKey: last.coordinate)
     index[last.coordinate] = 0
     _ = siftDown(0)
-    
-    // verify invariants
-    assert(elements.allSatisfy { $0 >= first })
     
     return first
   }
@@ -419,10 +409,10 @@ let input = """
 
 let testMap = try Map(description: testInput)
 let testPath = testMap.path(from: testMap.start, to: testMap.end)
-print(testMap.description(highlighting: .init(testPath)))
+//print(testMap.description(highlighting: .init(testPath)))
 print(testMap.cost(path: testPath))
 
 let map = try Map(description: input)
 let path = map.path(from: map.start, to: map.end)
-print(map.description(highlighting: .init(path)))
+//print(map.description(highlighting: .init(path)))
 print(map.cost(path: path))

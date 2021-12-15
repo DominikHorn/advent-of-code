@@ -247,7 +247,7 @@ struct Map {
     else { return [] }
     
     let heuristic = { (a: Coordinate, b: Coordinate) -> Int in
-      Int(sqrt(Double((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y))).rounded(.toNearestOrAwayFromZero))
+      abs(a.x - b.x) + abs(a.y - b.y)
     }
     
     var openList = NodeList()

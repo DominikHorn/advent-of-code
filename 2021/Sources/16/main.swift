@@ -92,6 +92,7 @@ enum ParsingError: Error {
   case invalidPacketHeader
   case invalidVersion(_ raw: UInt8)
   case invalidTypeID(_ raw: UInt8)
+  case invalidOperatorCode(_ raw: TypeID)
   case brokenLiteralPacket
   case brokenOperatorPacket
 }
@@ -177,16 +178,40 @@ enum Version: UInt8 {
   case six   = 0b110
   case seven = 0b111
 }
+
+enum Operation {
+  case sum
+  case product
+  case min
+  case max
+  case greaterThan
+  case lessThan
+  case equalTo
+}
+
 enum TypeID: UInt8 {
   case literal = 0b0100
   
-  case operator0 = 0b0000
-  case operator1 = 0b0001
-  case operator2 = 0b0010
-  case operator3 = 0b0011
-  case operator5 = 0b0101
-  case operator6 = 0b0110
-  case operator7 = 0b0111
+  case sum = 0b0000
+  case product = 0b0001
+  case min = 0b0010
+  case max = 0b0011
+  case greaterThan = 0b0101
+  case lessThan = 0b0110
+  case equalTo = 0b0111
+  
+  var operation: Operation? {
+    switch self {
+    case .literal: return nil
+    case .sum: return .sum
+    case .product: return .product
+    case .min: return .min
+    case .max: return .max
+    case .greaterThan: return .greaterThan
+    case .lessThan: return .lessThan
+    case .equalTo: return .equalTo
+    }
+  }
 }
 
 protocol Packet {
@@ -195,6 +220,8 @@ protocol Packet {
   var versionSum: UInt { get }
   
   init(version: Version, typeID: TypeID, bits: inout BitQueue) throws
+  
+  func compute() -> UInt64
 }
 
 struct LiteralValue: Packet {
@@ -217,6 +244,10 @@ struct LiteralValue: Packet {
       self.value |= n
     } while flag != 0x0
   }
+  
+  func compute() -> UInt64 {
+    value
+  }
 }
 
 extension LiteralValue: CustomStringConvertible {
@@ -228,14 +259,17 @@ extension LiteralValue: CustomStringConvertible {
 struct Operator: Packet {
   var version: Version
   var sub: [Packet]
-  // var operation: Operation
+  var operation: Operation
   
   var versionSum: UInt {
     UInt(version.rawValue) + sub.reduce(0) { $0 + $1.versionSum }
   }
   
   init(version: Version, typeID: TypeID, bits: inout BitQueue) throws {
+    guard let op = typeID.operation else { throw ParsingError.invalidOperatorCode(typeID) }
+    
     self.version = version
+    self.operation = op
     self.sub = []
     
     guard let bit = bits.pop(), let lengthTypeId = LengthTypeID(rawValue: .init(bit)) else {
@@ -255,6 +289,40 @@ struct Operator: Packet {
     case .subPacketCount:
       guard let subPackets = bits.pop(11) else { throw ParsingError.brokenOperatorPacket }
       sub = try (0..<subPackets).map { _ in try Parser.parseNext(bits: &bits) }
+    }
+    
+    guard !sub.isEmpty else { throw ParsingError.brokenOperatorPacket }
+    switch operation {
+    case .greaterThan:
+      guard sub.count == 2 else { throw ParsingError.brokenOperatorPacket }
+    case .lessThan:
+      guard sub.count == 2 else { throw ParsingError.brokenOperatorPacket }
+    case .equalTo:
+      guard sub.count == 2 else { throw ParsingError.brokenOperatorPacket }
+    default:
+      break
+    }
+  }
+  
+  func compute() -> UInt64 {
+    switch operation {
+    case .sum:
+      return sub.reduce(0) { $0 + $1.compute() }
+    case .product:
+      return sub.reduce(1) { $0 * $1.compute() }
+    case .min:
+      return sub.reduce(UInt64.max) { min($0, $1.compute()) }
+    case .max:
+      return sub.reduce(UInt64.min) { max($0, $1.compute()) }
+    case .greaterThan:
+      precondition(sub.count == 2) // invariant checked in init()
+      return sub[0].compute() > sub[1].compute() ? 1 : 0
+    case .lessThan:
+      precondition(sub.count == 2) // invariant checked in init()
+      return sub[0].compute() < sub[1].compute() ? 1 : 0
+    case .equalTo:
+      precondition(sub.count == 2) // invariant checked in init()
+      return sub[0].compute() == sub[1].compute() ? 1 : 0
     }
   }
   
@@ -299,29 +367,48 @@ struct Parser {
   }
 }
 
-let testInput1 = "D2FE28"
-let testInput2 = "38006F45291200"
-let testInput3 = "EE00D40C823060"
-let testInput4 = "8A004A801A8002F478"
-let testInput5 = "620080001611562C8802118E34"
-let testInput6 = "C0015000016115A2E0802F182340"
-let testInput7 = "A0016C880162017C3686B18A3D4780"
+let p1t1 = "D2FE28"
+let p1t2 = "38006F45291200"
+let p1t3 = "EE00D40C823060"
+let p1t4 = "8A004A801A8002F478"
+let p1t5 = "620080001611562C8802118E34"
+let p1t6 = "C0015000016115A2E0802F182340"
+let p1t7 = "A0016C880162017C3686B18A3D4780"
 
 let input = "020D790050D26C13EC1348326D336ACE00EC299E6A8B929ED59C880502E00A526B969F62BF35CB4FB15B93A6311F67F813300470037500043E2D4218FA000864538E905A39CAF77386E35AB01802FC01BA00021118617C1F00043A3F4748A53CF66008D00481272D73308334EDB0ED304E200D4E94CF612A49B40036C98A7CF24A53CA94C6370FBDCC9018029600ACD529CA9A4F62ACD2B5F928802F0D2665CA7D6CC013919E78A3800D3CF7794A8FC938280473057394AFF15099BA23CDD37A08400E2A5F7297F916C9F97F82D2DFA734BC600D4E3BC89CCBABCBE2B77D200412599244D4C0138C780120CC67E9D351C5AB4E1D4C981802980080CDB84E034C5767C60124F3BC984CD1E479201232C016100662D45089A00087C1084F12A724752BEFEA9C51500566759BF9BE6C5080217910CD00525B6350E8C00E9272200DCE4EF4C1DD003952F7059BCF675443005680103976997699795E830C02E4CBCE72EFC6A6218C88C9DF2F3351FCEF2D83CADB779F59A052801F2BAACDAE7F52A8190073937FE1D700439234DBB4F7374DC0CC804CF1006A0D47B8A4200F445865170401F8251662D100909401AB8803313217C680004320D43F871308D140C010E0069E7EDD1796AFC8255800052E20043E0F42A8B6400864258E51088010B85910A0F4ECE1DFE069C0229AE63D0B8DC6F82529403203305C00E1002C80AF5602908400A20240100852401E98400830021400D30029004B6100294008400B9D0023240061C000D19CACCD9005F694AEF6493D3F9948DEB3B4CC273FFD5E9AD85CFDFF6978B80050392AC3D98D796449BE304FE7F0C13CD716656BD0A6002A67E61A400F6E8029300B300B11480463D004C401889B1CA31800211162204679621200FCAC01791CF6B1AFCF2473DAC6BF3A9F1700016A3D90064D359B35D003430727A7DC464E6401594A57C93A0084CC56A662B8C00AA424989F2A9112"
 
-let p1 = try Parser.parse(hexString: testInput1)
-let p2 = try Parser.parse(hexString: testInput2)
-let p3 = try Parser.parse(hexString: testInput3)
-let p4 = try Parser.parse(hexString: testInput4)
-let p5 = try Parser.parse(hexString: testInput5)
-let p6 = try Parser.parse(hexString: testInput6)
-let p7 = try Parser.parse(hexString: testInput7)
+let p1p1 = try Parser.parse(hexString: p1t1)
+let p1p2 = try Parser.parse(hexString: p1t2)
+let p1p3 = try Parser.parse(hexString: p1t3)
+let p1p4 = try Parser.parse(hexString: p1t4)
+let p1p5 = try Parser.parse(hexString: p1t5)
+let p1p6 = try Parser.parse(hexString: p1t6)
+let p1p7 = try Parser.parse(hexString: p1t7)
 
-print("part 1:")
-print(p4.versionSum)
-print(p5.versionSum)
-print(p6.versionSum)
-print(p7.versionSum)
+assert(p1p4.versionSum == 16)
+assert(p1p5.versionSum == 12)
+assert(p1p6.versionSum == 23)
+assert(p1p7.versionSum == 31)
 
 let p = try Parser.parse(hexString: input)
-print(p.versionSum)
+print("part 1: \(p.versionSum)")
+
+let p2p1 = try Parser.parse(hexString: "C200B40A82") // finds the sum of 1 and 2, resulting in the value 3.
+let p2p2 = try Parser.parse(hexString: "04005AC33890") // finds the product of 6 and 9, resulting in the value 54.
+let p2p3 = try Parser.parse(hexString: "880086C3E88112") // finds the minimum of 7, 8, and 9, resulting in the value 7.
+let p2p4 = try Parser.parse(hexString: "CE00C43D881120") // finds the maximum of 7, 8, and 9, resulting in the value 9.
+let p2p5 = try Parser.parse(hexString: "D8005AC2A8F0") // produces 1, because 5 is less than 15.
+let p2p6 = try Parser.parse(hexString: "F600BC2D8F") // produces 0, because 5 is not greater than 15.
+let p2p7 = try Parser.parse(hexString: "9C005AC2F8F0") // produces 0, because 5 is not equal to 15.
+let p2p8 = try Parser.parse(hexString: "9C0141080250320F1802104A08") // produces 1, because 1 + 3 = 2 * 2.
+
+assert(p2p1.compute() == 3)
+assert(p2p2.compute() == 54)
+assert(p2p3.compute() == 7)
+assert(p2p4.compute() == 9)
+assert(p2p5.compute() == 1)
+assert(p2p6.compute() == 0)
+assert(p2p7.compute() == 0)
+assert(p2p8.compute() == 1)
+
+print("part 2: \(p.compute())")

@@ -137,9 +137,21 @@ struct Area {
   var max: Coordinate
 }
 
+extension Area: CustomStringConvertible {
+  var description: String {
+    "A(\(min.x)...\(max.x) x \(min.y)...\(max.y))"
+  }
+}
+
 struct Velocity: Hashable {
   var vx: Int
   var vy: Int
+}
+
+extension Velocity: CustomStringConvertible {
+  var description: String {
+    "V(\(vx), \(vy))"
+  }
 }
 
 func sumOf(firstN n: Int) -> Int {
@@ -155,49 +167,38 @@ extension Collection {
   }
 }
 
-// Whether or not
-func does(shot: Velocity, hitTarget area: Area) -> Bool {
-  var velocity = shot
-  var pos = Coordinate(x: 0, y: 0)
+func computeVelocities(target area: Area) -> Set<Velocity> {
+  // min.x <= sumOf(firstN: v) - sumOf(firstN: v - t) <= max.x
+  let stoppingMinVX = Int(((-1 + sqrt(1.0 + 8.0 * Double(area.min.x))) / 2).rounded(.up))
+  let stoppingMaxVY = Int(((-1 + sqrt(1.0 + 8.0 * Double(area.max.x))) / 2).rounded(.down))
   
-  while pos.x <= area.max.x, pos.y >= area.max.y {
-    if pos.x >= area.min.x, pos.y <= area.min.y {
-      return true
-    }
+  let maxYSteps = 2 * (-area.max.y - 1) + 1
+  return (1...(maxYSteps+1)).reduce(into: []) { aggr, step in
+    // min.y >= tv - sumOf(firstN: t - 1) >= max.y
+    let minVY = Int(((Double(area.max.y) / Double(step) + Double(step - 1) / 2)).rounded(.up))
+    let maxVY = Int(((Double(area.min.y) / Double(step) + Double(step - 1) / 2)).rounded(.down))
     
-    pos.x += velocity.vx
-    pos.y += velocity.vy
+    // all that pass through target area in this step
+    let possibleY = minVY <= maxVY ? Set(minVY...maxVY) : []
     
-    velocity.vx -= velocity.vx > 0 ? 1 : velocity.vx < 0 ? -1 : 0
-    velocity.vy -= 1
-  }
-  
-  return false
-}
-
-/// computes all x velocities that will hit
-func possibleStartVelocities(target area: Area) -> Set<Velocity> {
-  // TODO: find min/max velocities for a given step count (i.e., prune search space)
-  
-  // x hit on n-th step -> min.x <= min(n * t - (n (n - 1) / 2), t (t + 1) / 2) <= max.x
-  //   -> from this we can derive minVX and maxVX
-  var minVX = 1
-  while sumOf(firstN: minVX) < area.min.x {
-    minVX += 1
-  }
-  let maxVX = area.max.x
-  
-  // see part 1
-  let minVY = area.max.y
-  let maxVY = -area.max.y - 1
-  
-  return (1..<max(abs(area.max.x), abs(area.max.y))).reduce(into: []) { aggr, step in
-    (minVY...maxVY).forEach { vy in
-      (minVX...maxVX).forEach { vx in
+    
+    // minX <= sumOf(firstN: v) - sumOf(firstN: v - t) <= maxX [iff t <= v]
+    let minVX = Int((Double(2 * area.min.x + step * step - step) / Double(2 * step)).rounded(.up))
+    let maxVX = Int((Double(2 * area.max.x + step * step - step) / Double(2 * step)).rounded(.down))
+    
+    // (1) all that stopped in target area: `min.x <= sumOf(firstN: v) <= max.x [iff v <= t]`
+    // (2) all that pass through target area on this step
+    let possibleX = Set(stoppingMinVX...stoppingMaxVY)
+      .union(minVX < maxVX ? Set(minVX...maxVX) : [])
+      .filter {
+        let pos = sumOf(firstN: $0) - ($0 < step ? 0 : sumOf(firstN: $0 - step))
+        return area.min.x <= pos && area.max.x >= pos
+      }
+    
+    possibleY.forEach { vy in
+      possibleX.forEach { vx in
         let velocity = Velocity(vx: vx, vy: vy)
-        if (does(shot: velocity, hitTarget: area)) {
-          aggr.insert(velocity)
-        }
+        aggr.insert(velocity)
       }
     }
   }
@@ -242,6 +243,9 @@ let expectedTestPossibilities = Set(
     return Velocity(vx: Int(raw[0])!, vy: Int(raw[1])!)
   }
 )
-assert(possibleStartVelocities(target: testTargetArea) == expectedTestPossibilities)
-print("part 2: \(possibleStartVelocities(target: targetArea).count)")
 
+let testPossibilitites = computeVelocities(target: testTargetArea)
+assert(testPossibilitites == expectedTestPossibilities)
+
+let possibilities = computeVelocities(target: targetArea)
+print("part 2: \(possibilities.count)")

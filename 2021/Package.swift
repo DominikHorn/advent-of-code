@@ -30,6 +30,6 @@ let package = Package(
         .executableTarget(name: "16"),
         .executableTarget(name: "17"),
         .executableTarget(name: "18"),
-        .executableTarget(name: "19")
+        .executableTarget(name: "19", dependencies: [.product(name: "Collections", package: "swift-collections")]),
     ]
 )

@@ -572,33 +572,34 @@ struct Scanner: Hashable {
   func localize(_ other: Scanner) -> Scanner? {
     // Assert that we are right side up. For each possible `orientation`:
     for orientation in Orientation.allPossible {
-      // Assert that transforming `other` using `orientation` yields aligned orientation.
       // TODO: we should maybe cache this depending on overall runtime
-      let otherRotated = other.beacons.map { Beacon(pos: orientation.transform($0.pos)) }
+      // Assert that transforming `other` using `orientation` yields aligned orientation.
+      let otherRotatedPos = Set(other.beacons.map { orientation.transform($0.pos) })
       
-      for otherBeacon in otherRotated {
+      for otherPos in otherRotatedPos {
         // Test each of our beacons, i.e.:
         for beacon in beacons {
           // Assume 'otherBeacon' and currently tested beacon are aligned.
           // Compute offset of other scanner in our coordinate system
-          let otherOffset = beacon.pos - otherBeacon.pos
-          
-          // Compute offset transform (our scanner vs other scanner)
-          let otherTransformed = Set(otherRotated.map { Beacon(pos: $0.pos + otherOffset) })
+          let otherOffset = beacon.pos - otherPos
 
           // Find 12 matches or a single missmatch
           var visibleCount = 0
           for b in beacons {
-            let relToOther = b.pos - otherOffset
-            if relToOther.absolute <= 1000 {
-              if otherTransformed.contains(b) {
-                visibleCount += 1
-                if visibleCount >= 12 {
-                  return .init(id: other.id, beacons: Set(otherRotated), globalOffset: otherOffset + globalOffset)
-                }
-              } else {
-                break
+            // consider only beacons that are visible to other scanner
+            guard (b.pos - otherOffset).absolute <= 1000  else { continue }
+            
+            if otherRotatedPos.contains(b.pos - otherOffset) {
+              visibleCount += 1
+              if visibleCount >= 12 {
+                return .init(
+                  id: other.id,
+                  beacons: Set(otherRotatedPos.map { Beacon(pos: $0) }),
+                  globalOffset: otherOffset + globalOffset
+                )
               }
+            } else {
+              break
             }
           }
         }
@@ -1835,6 +1836,8 @@ let input = """
 956,-549,611
 """
 
+let start = DispatchTime.now()
+
 let map = try Map(fromScannersDescription: input)
 print("part 1: \(map.uniqueBeacons.count)")
 
@@ -1850,3 +1853,6 @@ map.locatedScanners.forEach { s0 in
   }
 }
 print("part 2: \(maxDistance)")
+
+let end = DispatchTime.now()
+print("took \(Double(end.uptimeNanoseconds - start.uptimeNanoseconds) / 1_000_000_000.0)s")

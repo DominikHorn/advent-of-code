@@ -1,5 +1,4 @@
 import Foundation
-import DequeModule
 
 /*
  --- Day 19: Beacon Scanner ---
@@ -656,7 +655,7 @@ struct Map {
 
     // for each work item, try matching the remaining, yet unlocated scanners.
     // Upon localization, add as work item and
-    var workList = Deque([s0])
+    var workList = Set([s0])
     var unlocalized = Set(scanners).subtracting(locatedScanners)
     while locatedScanners.count < scanners.count {
       guard let scanner = workList.popFirst() else { throw MappingError.insufficientInfo }
@@ -666,7 +665,7 @@ struct Map {
         if let localized = scanner.localize(s) {
           locatedScanners.insert(localized)
           unlocalized.remove(s)
-          workList.append(localized)
+          workList.insert(localized)
         }
       }
     }

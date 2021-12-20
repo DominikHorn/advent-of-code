@@ -538,6 +538,11 @@ struct Scanner: Hashable {
   var globalOffset = Coordinate(a: 0, b: 0, c: 0)
   var beacons: Set<Beacon>
   
+  func manhattenDistance(to other: Scanner) -> Int {
+    let vec = (globalOffset - other.globalOffset).absolute
+    return vec.a + vec.b + vec.c
+  }
+  
   private init(id: UInt, beacons: Set<Beacon>, globalOffset: Coordinate) {
     self.id = id
     self.beacons = beacons
@@ -819,6 +824,15 @@ let expectedMapping: [UInt: Coordinate] = [
 
 assert(testMap.locatedScanners.allSatisfy { expectedMapping[$0.id] == $0.globalOffset })
 assert(testMap.uniqueBeacons.count == 79)
+
+guard let testScanner2 = testMap.locatedScanners.first(where: { $0.id == 2 }),
+      let testScanner3 = testMap.locatedScanners.first(where: { $0.id == 3 })
+else {
+  assert(false)
+  exit(-1)
+}
+
+assert(testScanner2.manhattenDistance(to: testScanner3) == 3621)
 
 let input = """
 --- scanner 0 ---
@@ -1823,3 +1837,16 @@ let input = """
 
 let map = try Map(fromScannersDescription: input)
 print("part 1: \(map.uniqueBeacons.count)")
+
+var maxDistance = 0
+map.locatedScanners.forEach { s0 in
+  map.locatedScanners.forEach { s1 in
+    if s0 == s1 { return }
+    let distance = s0.manhattenDistance(to: s1)
+    
+    if maxDistance < distance {
+      maxDistance = distance
+    }
+  }
+}
+print("part 2: \(maxDistance)")

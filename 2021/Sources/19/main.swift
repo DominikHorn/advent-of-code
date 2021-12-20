@@ -538,9 +538,9 @@ struct Scanner: Hashable {
   var globalOffset = Coordinate(a: 0, b: 0, c: 0)
   var beacons: Set<Beacon>
   
-  func manhattenDistance(to other: Scanner) -> Int {
+  func manhattenDistance(to other: Scanner) -> UInt {
     let vec = (globalOffset - other.globalOffset).absolute
-    return vec.a + vec.b + vec.c
+    return UInt(vec.a + vec.b + vec.c)
   }
   
   private init(id: UInt, beacons: Set<Beacon>, globalOffset: Coordinate) {
@@ -610,23 +610,9 @@ struct Scanner: Hashable {
   }
 }
 
-func parse(description: String) throws -> [Scanner] {
-  let raw = description
-    .trimmingCharacters(in: .whitespacesAndNewlines)
-    .split(separator: "\n", omittingEmptySubsequences: false)
-  let ends = [0] + raw.enumerated().compactMap {
-    $1.isEmpty ? $0 : nil
-  } + [raw.count]
-  guard ends.count > 1 else { throw ParsingError.invalidInput }
-  
-  return try (1..<ends.count).map { i in
-    let str = raw[ends[i-1]..<ends[i]].joined(separator: "\n")
-    return try Scanner(description: str)
-  }
-}
-
 struct Map {
   var locatedScanners = Set<Scanner>()
+  
   var uniqueBeacons: Set<Beacon> {
     locatedScanners.reduce(into: []) { aggr, scanner in
       scanner.beacons.forEach { b in
@@ -635,8 +621,24 @@ struct Map {
     }
   }
   
+  var maxScannerToScannerDistance: UInt {
+    var maxDistance = UInt(0)
+    map.locatedScanners.forEach { s0 in
+      map.locatedScanners.forEach { s1 in
+        if s0 == s1 { return }
+        let distance = s0.manhattenDistance(to: s1)
+        
+        if maxDistance < distance {
+          maxDistance = distance
+        }
+      }
+    }
+    
+    return maxDistance
+  }
+  
   init(fromScannersDescription scannersDescription: String) throws {
-    let scanners = try parse(description: scannersDescription)
+    let scanners = try Map.parse(description: scannersDescription)
     guard !scanners.isEmpty, let s0 = scanners.first(where: { $0.id == 0 }) else { return }
     
     // fix s0 as reference point
@@ -657,6 +659,21 @@ struct Map {
           workList.append(localized)
         }
       }
+    }
+  }
+  
+  static func parse(description: String) throws -> [Scanner] {
+    let raw = description
+      .trimmingCharacters(in: .whitespacesAndNewlines)
+      .split(separator: "\n", omittingEmptySubsequences: false)
+    let ends = [0] + raw.enumerated().compactMap {
+      $1.isEmpty ? $0 : nil
+    } + [raw.count]
+    guard ends.count > 1 else { throw ParsingError.invalidInput }
+    
+    return try (1..<ends.count).map { i in
+      let str = raw[ends[i-1]..<ends[i]].joined(separator: "\n")
+      return try Scanner(description: str)
     }
   }
   
@@ -804,7 +821,7 @@ let testInput = """
 30,-46,-14
 """
 
-let testScanners = try parse(description: testInput)
+let testScanners = try Map.parse(description: testInput)
 
 let testOverlap0_1 = testScanners[0].localize(testScanners[1])
 assert(testOverlap0_1 != nil)
@@ -1840,19 +1857,7 @@ let start = DispatchTime.now()
 
 let map = try Map(fromScannersDescription: input)
 print("part 1: \(map.uniqueBeacons.count)")
-
-var maxDistance = 0
-map.locatedScanners.forEach { s0 in
-  map.locatedScanners.forEach { s1 in
-    if s0 == s1 { return }
-    let distance = s0.manhattenDistance(to: s1)
-    
-    if maxDistance < distance {
-      maxDistance = distance
-    }
-  }
-}
-print("part 2: \(maxDistance)")
+print("part 2: \(map.maxScannerToScannerDistance)")
 
 let end = DispatchTime.now()
 print("took \(Double(end.uptimeNanoseconds - start.uptimeNanoseconds) / 1_000_000_000.0)s")

@@ -117,16 +117,14 @@ struct DiracDiceGame {
       }
     }
   
-  /// given a position and current score, count how many universes
-  /// require how many steps to cross threshold of 21, e.g., 100 universes
-  /// need a single step, 200 universes need two steps, ...
+  /// counts dirac wins for each player given an initial system condition
   private func countDiracWins(
-    p1Pos: Int, p1Score: Int,
-    p2Pos: Int, p2Score: Int,
-    p1Turn: Bool,
-    step: Int, universesCount: UInt, res: inout [Int: (p1Wins: UInt, p2Wins: UInt)]
-  ) {
-//    print("\(Array(repeating: "  ", count: step-1).joined())Before \(p1Turn ? "P1" : "P2"): \(universesCount) x (\(p1Score), \(p2Score))")
+    p1Pos: Int, p1Score: Int = 0,
+    p2Pos: Int, p2Score: Int = 0,
+    p1Turn: Bool = true,
+    universesCount: UInt = 1
+  ) -> (p1: UInt, p2: UInt) {
+    var wins = (p1: UInt(0), p2: UInt(0))
     
     // simulate a single turn
     let pos = p1Turn ? p1Pos : p2Pos
@@ -136,40 +134,36 @@ struct DiracDiceGame {
       let newScore = score + newPos
       
       if newScore >= 21 {
-        // a player has won, tally up how many universes exist where this happens
-        var old = res[step] ?? (0, 0)
-        
-        // check which player won and tally
+        // A player has won, tally up the universe count where this happens
         if p1Turn {
-          old.p1Wins += delta.value * universesCount
+          wins.p1 += delta.value * universesCount
         } else {
-          old.p2Wins += delta.value * universesCount
+          wins.p2 += delta.value * universesCount
         }
-        res[step] = old
       } else {
         // Recurse into next player's turn
-        if p1Turn {
-          countDiracWins(p1Pos: newPos, p1Score: newScore, p2Pos: p2Pos, p2Score: p2Score, p1Turn: false, step: step, universesCount: universesCount * delta.value, res: &res)
-        } else {
-          countDiracWins(p1Pos: p1Pos, p1Score: p1Score, p2Pos: newPos, p2Score: newScore, p1Turn: true, step: step + 1, universesCount: universesCount * delta.value, res: &res)
-        }
+        let w = countDiracWins(
+          p1Pos: p1Turn ? newPos : p1Pos,
+          p1Score: p1Turn ? newScore : p1Score,
+          p2Pos: p1Turn ? p2Pos : newPos,
+          p2Score: p1Turn ? p2Score : newScore,
+          p1Turn: !p1Turn,
+          universesCount: universesCount * delta.value
+        )
+        wins.p1 += w.p1
+        wins.p2 += w.p2
       }
     }
+    
+    return wins
   }
   
   func playDirac() -> UInt {
-    let p1 = turnDeque.first!
-    let p2 = turnDeque.last!
+    guard let p1 = turnDeque.first, let p2 = turnDeque.last else { return .min }
     
-    var wins = [Int: (p1Wins: UInt, p2Wins: UInt)]()
-    countDiracWins(p1Pos: p1.pos, p1Score: 0, p2Pos: p2.pos, p2Score: 0, p1Turn: true, step: 1, universesCount: 1, res: &wins)
-
-    let totalP1Wins = wins.reduce(0) { $0 + $1.value.p1Wins }
-    let totalP2Wins = wins.reduce(0) { $0 + $1.value.p2Wins }
+    let wins = countDiracWins(p1Pos: p1.pos, p2Pos: p2.pos)
     
-//    print("There are \(totalP1Wins) universes where P1 wins and \(totalP2Wins) universes she looses")
-    
-    return max(totalP1Wins, totalP2Wins)
+    return max(wins.p1, wins.p2)
   }
 }
 
@@ -189,4 +183,8 @@ Player 2 starting position: 10
 
 let game = try DiracDiceGame(description: input)
 print("part 1: \(game.playDeterministic())")
+
+let start_ns = DispatchTime.now().uptimeNanoseconds
 print("part 2: \(game.playDirac())")
+let delta_ns = DispatchTime.now().uptimeNanoseconds - start_ns
+print("-> took \(Double(delta_ns) / 1_000_000_000.0)s")

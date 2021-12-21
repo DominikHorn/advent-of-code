@@ -438,7 +438,7 @@ struct DirectedAxis: Hashable, CustomStringConvertible {
     : .z
   }
   
-  func component(_ coord: Coordinate) -> Int {
+  func component(_ coord: IntVector) -> Int {
     var res = coord.a
     switch axis {
     case .y: res = coord.b
@@ -487,7 +487,7 @@ struct Orientation: Hashable, CustomStringConvertible {
     }
   }()
   
-  func transform(_ coordinate: Coordinate) -> Coordinate {
+  func transform(_ coordinate: IntVector) -> IntVector {
     .init(
       a: right.component(coordinate),
       b: up.component(coordinate),
@@ -496,7 +496,7 @@ struct Orientation: Hashable, CustomStringConvertible {
   }
 }
 
-struct Coordinate: Hashable, CustomStringConvertible {
+struct IntVector: Hashable, CustomStringConvertible {
   var a: Int
   var b: Int
   var c: Int
@@ -505,28 +505,27 @@ struct Coordinate: Hashable, CustomStringConvertible {
     "(\(a), \(b), \(c))"
   }
   
-  var absolute: Coordinate {
+  var absolute: IntVector {
     .init(a: abs(a), b: abs(b), c: abs(c))
   }
   
-  static func +(lhs: Coordinate, rhs: Coordinate) -> Coordinate {
+  static func +(lhs: IntVector, rhs: IntVector) -> IntVector {
     .init(a: lhs.a + rhs.a, b: lhs.b + rhs.b, c: lhs.c + rhs.c)
   }
   
-  static func -(lhs: Coordinate, rhs: Coordinate) -> Coordinate {
+  static func -(lhs: IntVector, rhs: IntVector) -> IntVector {
     .init(a: lhs.a - rhs.a, b: lhs.b - rhs.b, c: lhs.c - rhs.c)
   }
   
-  static func <=<I: SignedInteger>(lhs: Coordinate, rhs: I) -> Bool {
+  static func <=<I: SignedInteger>(lhs: IntVector, rhs: I) -> Bool {
     lhs.a <= rhs && lhs.b <= rhs && lhs.c <= rhs
   }
 }
 
 struct Beacon: Hashable {
-  /// relative position to scanner in unknown rotation
-  var pos: Coordinate
+  var pos: IntVector
   
-  init(pos: Coordinate) {
+  init(pos: IntVector) {
     self.pos = pos
   }
   
@@ -544,7 +543,7 @@ struct Beacon: Hashable {
 
 struct Scanner: Hashable {
   var id: UInt
-  var globalOffset = Coordinate(a: 0, b: 0, c: 0)
+  var globalOffset = IntVector(a: 0, b: 0, c: 0)
   var beacons: Set<Beacon>
   
   func manhattenDistance(to other: Scanner) -> UInt {
@@ -552,7 +551,7 @@ struct Scanner: Hashable {
     return UInt(vec.a + vec.b + vec.c)
   }
   
-  private init(id: UInt, beacons: Set<Beacon>, globalOffset: Coordinate) {
+  private init(id: UInt, beacons: Set<Beacon>, globalOffset: IntVector) {
     self.id = id
     self.beacons = beacons
     self.globalOffset = globalOffset
@@ -581,7 +580,6 @@ struct Scanner: Hashable {
   func localize(_ other: Scanner) -> Scanner? {
     // Assert that we are right side up. For each possible `orientation`:
     for orientation in Orientation.allPossible {
-      // TODO: we should maybe cache this depending on overall runtime
       // Assert that transforming `other` using `orientation` yields aligned orientation.
       let otherRotatedPos = Set(other.beacons.map { orientation.transform($0.pos) })
       
@@ -841,7 +839,7 @@ assert(testOverlap1_4 != nil)
 assert(testOverlap1_4?.globalOffset == .init(a: -20, b: -1133, c: 1061))
 
 let testMap = try Map(fromScannersDescription: testInput)
-let expectedMapping: [UInt: Coordinate] = [
+let expectedMapping: [UInt: IntVector] = [
   0: .init(a: 0, b: 0, c: 0),
   1: .init(a: 68, b: -1246, c: -43),
   2: .init(a: 1105, b: -1205, c: 1229),

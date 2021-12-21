@@ -123,7 +123,6 @@ struct DiracDiceGame {
     var p1Score: Int
     var p2Score: Int
     var p1Turn: Bool
-    var universesCount: UInt
   }
   private var cache = [Parameters: (p1: UInt, p2: UInt)]()
 
@@ -131,10 +130,9 @@ struct DiracDiceGame {
   private mutating func countDiracWins(
     p1Pos: Int, p1Score: Int = 0,
     p2Pos: Int, p2Score: Int = 0,
-    p1Turn: Bool = true,
-    universesCount: UInt = 1
+    p1Turn: Bool = true
   ) -> (p1: UInt, p2: UInt) {
-    if let res = cache[.init(p1Pos: p1Pos, p2Pos: p2Pos, p1Score: p1Score, p2Score: p2Score, p1Turn: p1Turn, universesCount: universesCount)] {
+    if let res = cache[.init(p1Pos: p1Pos, p2Pos: p2Pos, p1Score: p1Score, p2Score: p2Score, p1Turn: p1Turn)] {
       return res
     }
     
@@ -150,9 +148,9 @@ struct DiracDiceGame {
       if newScore >= 21 {
         // A player has won, tally up the universe count where this happens
         if p1Turn {
-          wins.p1 += delta.value * universesCount
+          wins.p1 += delta.value
         } else {
-          wins.p2 += delta.value * universesCount
+          wins.p2 += delta.value
         }
       } else {
         // Recurse into next player's turn
@@ -161,15 +159,14 @@ struct DiracDiceGame {
           p1Score: p1Turn ? newScore : p1Score,
           p2Pos: p1Turn ? p2Pos : newPos,
           p2Score: p1Turn ? p2Score : newScore,
-          p1Turn: !p1Turn,
-          universesCount: universesCount * delta.value
+          p1Turn: !p1Turn
         )
-        wins.p1 += w.p1
-        wins.p2 += w.p2
+        wins.p1 += w.p1 * delta.value
+        wins.p2 += w.p2 * delta.value
       }
     }
     
-    cache[.init(p1Pos: p1Pos, p2Pos: p2Pos, p1Score: p1Score, p2Score: p2Score, p1Turn: p1Turn, universesCount: universesCount)] = wins
+    cache[.init(p1Pos: p1Pos, p2Pos: p2Pos, p1Score: p1Score, p2Score: p2Score, p1Turn: p1Turn)] = wins
     
     return wins
   }

@@ -45,14 +45,7 @@ enum ParsingError: Error {
   case invalidPlayerPos
 }
 
-protocol Dice {
-  init()
-  mutating func next() -> Int
-  
-  var rollCount: Int { get }
-}
-
-struct DeterministicDice: Dice {
+struct DeterministicDice {
   private var state = 0
   private(set) var rollCount = 0
   
@@ -72,7 +65,7 @@ struct Player {
   var score: Int = 0
 }
 
-struct DiracDiceGame<D: Dice> {
+struct DiracDiceGame {
   private var turnDeque: Deque<Player>
   
   init(description: String) throws {
@@ -89,12 +82,13 @@ struct DiracDiceGame<D: Dice> {
     )
   }
   
-  mutating func play() -> Int {
-    var dice = D()
+  func playDeterministic() -> Int {
+    var dice = DeterministicDice()
+    var turnQueue = turnDeque
     
     var gameEnded = false
     while !gameEnded {
-      guard var current = turnDeque.popFirst() else { return -1 }
+      guard var current = turnQueue.popFirst() else { return -1 }
       
       let roll1 = dice.next()
       let roll2 = dice.next()
@@ -103,17 +97,79 @@ struct DiracDiceGame<D: Dice> {
       current.pos = ((current.pos - 1 + roll1 + roll2 + roll3) % 10) + 1
       current.score += current.pos
       
-      turnDeque.append(current)
-      
-//      print("Player \(current.id) rolls \(roll1)+\(roll2)+\(roll3) and moves to space \(current.pos) for a total score of \(current.score)")
+      turnQueue.append(current)
       
       gameEnded = current.score >= 1000
     }
     
-    guard let firstLooser = turnDeque.popFirst() else { return -2 }
+    guard let firstLooser = turnQueue.popFirst() else { return -2 }
     
     // TODO: what happens if both finish in the same turn?
     return firstLooser.score * dice.rollCount
+  }
+  
+  private let diractTurnDeltas =
+    (1...3).reduce(into: [Int: UInt]()) { aggr, roll1 in
+      (1...3).forEach { roll2 in
+        (1...3).forEach { roll3 in
+          aggr[roll1 + roll2 + roll3] = (aggr[roll1 + roll2 + roll3] ?? 0) + 1
+        }
+      }
+    }
+  
+  /// given a position and current score, count how many universes
+  /// require how many steps to cross threshold of 21, e.g., 100 universes
+  /// need a single step, 200 universes need two steps, ...
+  private func countDiracWins(
+    p1Pos: Int, p1Score: Int,
+    p2Pos: Int, p2Score: Int,
+    p1Turn: Bool,
+    step: Int, universesCount: UInt, res: inout [Int: (p1Wins: UInt, p2Wins: UInt)]
+  ) {
+//    print("\(Array(repeating: "  ", count: step-1).joined())Before \(p1Turn ? "P1" : "P2"): \(universesCount) x (\(p1Score), \(p2Score))")
+    
+    // simulate a single turn
+    let pos = p1Turn ? p1Pos : p2Pos
+    let score = p1Turn ? p1Score : p2Score
+    diractTurnDeltas.forEach { delta in
+      let newPos = ((pos - 1 + delta.key) % 10) + 1
+      let newScore = score + newPos
+      
+      if newScore >= 21 {
+        // a player has won, tally up how many universes exist where this happens
+        var old = res[step] ?? (0, 0)
+        
+        // check which player won and tally
+        if p1Turn {
+          old.p1Wins += delta.value * universesCount
+        } else {
+          old.p2Wins += delta.value * universesCount
+        }
+        res[step] = old
+      } else {
+        // Recurse into next player's turn
+        if p1Turn {
+          countDiracWins(p1Pos: newPos, p1Score: newScore, p2Pos: p2Pos, p2Score: p2Score, p1Turn: false, step: step, universesCount: universesCount * delta.value, res: &res)
+        } else {
+          countDiracWins(p1Pos: p1Pos, p1Score: p1Score, p2Pos: newPos, p2Score: newScore, p1Turn: true, step: step + 1, universesCount: universesCount * delta.value, res: &res)
+        }
+      }
+    }
+  }
+  
+  func playDirac() -> UInt {
+    let p1 = turnDeque.first!
+    let p2 = turnDeque.last!
+    
+    var wins = [Int: (p1Wins: UInt, p2Wins: UInt)]()
+    countDiracWins(p1Pos: p1.pos, p1Score: 0, p2Pos: p2.pos, p2Score: 0, p1Turn: true, step: 1, universesCount: 1, res: &wins)
+
+    let totalP1Wins = wins.reduce(0) { $0 + $1.value.p1Wins }
+    let totalP2Wins = wins.reduce(0) { $0 + $1.value.p2Wins }
+    
+//    print("There are \(totalP1Wins) universes where P1 wins and \(totalP2Wins) universes she looses")
+    
+    return max(totalP1Wins, totalP2Wins)
   }
 }
 
@@ -122,13 +178,15 @@ Player 1 starting position: 4
 Player 2 starting position: 8
 """
 
-var testGame = try DiracDiceGame<DeterministicDice>(description: testInput)
-assert(testGame.play() == 739785)
+let testGame = try DiracDiceGame(description: testInput)
+assert(testGame.playDeterministic() == 739785)
+assert(testGame.playDirac() == 444356092776315)
 
 let input = """
 Player 1 starting position: 8
 Player 2 starting position: 10
 """
 
-var game = try DiracDiceGame<DeterministicDice>(description: input)
-print("part 1: \(game.play())")
+let game = try DiracDiceGame(description: input)
+print("part 1: \(game.playDeterministic())")
+print("part 2: \(game.playDirac())")

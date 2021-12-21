@@ -117,13 +117,27 @@ struct DiracDiceGame {
       }
     }
   
+  private struct Parameters: Hashable {
+    var p1Pos: Int
+    var p2Pos: Int
+    var p1Score: Int
+    var p2Score: Int
+    var p1Turn: Bool
+    var universesCount: UInt
+  }
+  private var cache = [Parameters: (p1: UInt, p2: UInt)]()
+
   /// counts dirac wins for each player given an initial system condition
-  private func countDiracWins(
+  private mutating func countDiracWins(
     p1Pos: Int, p1Score: Int = 0,
     p2Pos: Int, p2Score: Int = 0,
     p1Turn: Bool = true,
     universesCount: UInt = 1
   ) -> (p1: UInt, p2: UInt) {
+    if let res = cache[.init(p1Pos: p1Pos, p2Pos: p2Pos, p1Score: p1Score, p2Score: p2Score, p1Turn: p1Turn, universesCount: universesCount)] {
+      return res
+    }
+    
     var wins = (p1: UInt(0), p2: UInt(0))
     
     // simulate a single turn
@@ -155,13 +169,15 @@ struct DiracDiceGame {
       }
     }
     
+    cache[.init(p1Pos: p1Pos, p2Pos: p2Pos, p1Score: p1Score, p2Score: p2Score, p1Turn: p1Turn, universesCount: universesCount)] = wins
+    
     return wins
   }
   
   func playDirac() -> UInt {
     guard let p1 = turnDeque.first, let p2 = turnDeque.last else { return .min }
-    
-    let wins = countDiracWins(p1Pos: p1.pos, p2Pos: p2.pos)
+    var game = self
+    let wins = game.countDiracWins(p1Pos: p1.pos, p2Pos: p2.pos)
     
     return max(wins.p1, wins.p2)
   }

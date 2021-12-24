@@ -89,6 +89,227 @@ import Foundation
    #A#B#C#D#
    #########
  What is the least energy required to organize the amphipods?
+ 
+ --- Part Two ---
+
+ As you prepare to give the amphipods your solution, you notice that the diagram they handed you was actually folded up. As you unfold it, you discover an extra part of the diagram.
+
+ Between the first and second lines of text that contain amphipod starting positions, insert the following lines:
+
+   #D#C#B#A#
+   #D#B#A#C#
+ So, the above example now becomes:
+
+ #############
+ #...........#
+ ###B#C#B#D###
+   #D#C#B#A#
+   #D#B#A#C#
+   #A#D#C#A#
+   #########
+ The amphipods still want to be organized into rooms similar to before:
+
+ #############
+ #...........#
+ ###A#B#C#D###
+   #A#B#C#D#
+   #A#B#C#D#
+   #A#B#C#D#
+   #########
+ In this updated example, the least energy required to organize these amphipods is 44169:
+
+ #############
+ #...........#
+ ###B#C#B#D###
+   #D#C#B#A#
+   #D#B#A#C#
+   #A#D#C#A#
+   #########
+
+ #############
+ #..........D#
+ ###B#C#B#.###
+   #D#C#B#A#
+   #D#B#A#C#
+   #A#D#C#A#
+   #########
+
+ #############
+ #A.........D#
+ ###B#C#B#.###
+   #D#C#B#.#
+   #D#B#A#C#
+   #A#D#C#A#
+   #########
+
+ #############
+ #A........BD#
+ ###B#C#.#.###
+   #D#C#B#.#
+   #D#B#A#C#
+   #A#D#C#A#
+   #########
+
+ #############
+ #A......B.BD#
+ ###B#C#.#.###
+   #D#C#.#.#
+   #D#B#A#C#
+   #A#D#C#A#
+   #########
+
+ #############
+ #AA.....B.BD#
+ ###B#C#.#.###
+   #D#C#.#.#
+   #D#B#.#C#
+   #A#D#C#A#
+   #########
+
+ #############
+ #AA.....B.BD#
+ ###B#.#.#.###
+   #D#C#.#.#
+   #D#B#C#C#
+   #A#D#C#A#
+   #########
+
+ #############
+ #AA.....B.BD#
+ ###B#.#.#.###
+   #D#.#C#.#
+   #D#B#C#C#
+   #A#D#C#A#
+   #########
+
+ #############
+ #AA...B.B.BD#
+ ###B#.#.#.###
+   #D#.#C#.#
+   #D#.#C#C#
+   #A#D#C#A#
+   #########
+
+ #############
+ #AA.D.B.B.BD#
+ ###B#.#.#.###
+   #D#.#C#.#
+   #D#.#C#C#
+   #A#.#C#A#
+   #########
+
+ #############
+ #AA.D...B.BD#
+ ###B#.#.#.###
+   #D#.#C#.#
+   #D#.#C#C#
+   #A#B#C#A#
+   #########
+
+ #############
+ #AA.D.....BD#
+ ###B#.#.#.###
+   #D#.#C#.#
+   #D#B#C#C#
+   #A#B#C#A#
+   #########
+
+ #############
+ #AA.D......D#
+ ###B#.#.#.###
+   #D#B#C#.#
+   #D#B#C#C#
+   #A#B#C#A#
+   #########
+
+ #############
+ #AA.D......D#
+ ###B#.#C#.###
+   #D#B#C#.#
+   #D#B#C#.#
+   #A#B#C#A#
+   #########
+
+ #############
+ #AA.D.....AD#
+ ###B#.#C#.###
+   #D#B#C#.#
+   #D#B#C#.#
+   #A#B#C#.#
+   #########
+
+ #############
+ #AA.......AD#
+ ###B#.#C#.###
+   #D#B#C#.#
+   #D#B#C#.#
+   #A#B#C#D#
+   #########
+
+ #############
+ #AA.......AD#
+ ###.#B#C#.###
+   #D#B#C#.#
+   #D#B#C#.#
+   #A#B#C#D#
+   #########
+
+ #############
+ #AA.......AD#
+ ###.#B#C#.###
+   #.#B#C#.#
+   #D#B#C#D#
+   #A#B#C#D#
+   #########
+
+ #############
+ #AA.D.....AD#
+ ###.#B#C#.###
+   #.#B#C#.#
+   #.#B#C#D#
+   #A#B#C#D#
+   #########
+
+ #############
+ #A..D.....AD#
+ ###.#B#C#.###
+   #.#B#C#.#
+   #A#B#C#D#
+   #A#B#C#D#
+   #########
+
+ #############
+ #...D.....AD#
+ ###.#B#C#.###
+   #A#B#C#.#
+   #A#B#C#D#
+   #A#B#C#D#
+   #########
+
+ #############
+ #.........AD#
+ ###.#B#C#.###
+   #A#B#C#D#
+   #A#B#C#D#
+   #A#B#C#D#
+   #########
+
+ #############
+ #..........D#
+ ###A#B#C#.###
+   #A#B#C#D#
+   #A#B#C#D#
+   #A#B#C#D#
+   #########
+
+ #############
+ #...........#
+ ###A#B#C#D###
+   #A#B#C#D#
+   #A#B#C#D#
+   #A#B#C#D#
+   #########
+ Using the initial configuration from the full diagram, what is the least energy required to organize the amphipods?
  */
 
 enum ParsingError: Error {
@@ -120,7 +341,7 @@ struct Burrow {
   var sideRooms: [Room] = Amphipod
     .allCases
     .sorted { $0.rawValue < $1.rawValue }
-    .map { .init(designatedFor: $0, front: nil, back: nil)}
+    .map { .init(designatedFor: $0)}
   
   var isFinished: Bool {
     hallway.amphipods.isEmpty && sideRooms.allSatisfy { $0.isFinished }
@@ -130,14 +351,15 @@ struct Burrow {
   private var invariantsHold: Bool {
     var cnts = [Amphipod: Int]()
     sideRooms.forEach {
-      if let a = $0.front { cnts[a] = (cnts[a] ?? 0) + 1 }
-      if let a = $0.back { cnts[a] = (cnts[a] ?? 0) + 1 }
+      $0.amphipods.forEach {
+        if let a = $0 { cnts[a] = (cnts[a] ?? 0) + 1 }
+      }
     }
     hallway.amphipods.forEach {
       cnts[$0.value] = (cnts[$0.value] ?? 0) + 1
     }
     
-    return cnts.allSatisfy { $0.value == 2 }
+    return cnts.allSatisfy { $0.value == 4 }
   }
   
   /// internal cost metrics not part of Equatable/Hashable consideration
@@ -148,15 +370,27 @@ struct Burrow {
   struct Room: Hashable {
     let designatedFor: Amphipod
     
-    var front: Amphipod?
-    var back: Amphipod?
+    var amphipods: [Amphipod?] = .init(repeating: nil, count: 4)
     
     var isFinished: Bool {
-      front == designatedFor && back == designatedFor
+      amphipods.allSatisfy { designatedFor == $0 }
     }
     
     func available() -> Bool {
-      front == nil && (back == nil || back == designatedFor)
+      var foundFirstNil = false
+      return amphipods.reversed().allSatisfy {
+        // top ones are all nil
+        if foundFirstNil {
+          return $0 == nil
+        }
+        // first one is nil
+        if $0 == nil {
+          foundFirstNil = true
+          return true
+        }
+        
+        return $0 == designatedFor
+      }
     }
   }
   
@@ -177,13 +411,17 @@ struct Burrow {
     guard raw.count == 5 else { throw ParsingError.invalidInput }
     
     let fronts = raw[2].compactMap { Amphipod(rawValue: $0) }
+    let topMiddle: [Amphipod] = [.desert, .copper, .bronze, .amber]
+    let bottomMiddle: [Amphipod] = [.desert, .bronze, .amber, .copper]
     let backs = raw[3].compactMap { Amphipod(rawValue: $0) }
     
     guard fronts.count == sideRooms.count, backs.count == sideRooms.count else { throw ParsingError.missingStarts }
     
     sideRooms.indices.forEach { i in
-      sideRooms[i].front = fronts[i]
-      sideRooms[i].back = backs[i]
+      sideRooms[i].amphipods[0] = fronts[i]
+      sideRooms[i].amphipods[1] = topMiddle[i]
+      sideRooms[i].amphipods[2] = bottomMiddle[i]
+      sideRooms[i].amphipods[3] = backs[i]
     }
     
     estimatedCostToFinish = estimateCostToFinish()
@@ -197,30 +435,27 @@ struct Burrow {
     return designatedIndices
   }
   
-  /// Never overestimates actual cost
+  /// Estimates in terms of min steps to finish. Never overestimates actual cost
   private func estimateCostToFinish() -> UInt {
     let designatedIndices = designatedIndices()
     
     // sum of each amphipods min cost to reach destination.
     return sideRooms.enumerated().reduce(into: 0) { aggr, curr in
       let (i, room) = curr
-      if let a = room.front, room.designatedFor != a {
-        let hallwayDistance = UInt(abs(hallway.spaceIndex(inFrontOf: designatedIndices[a]!) - hallway.spaceIndex(inFrontOf: i)))
-        
-        // move out of this room and into next room (2 steps), assuming we end at front of target
-        aggr += a.stepEnergy * (2 + hallwayDistance)
-      }
-      if let a = room.back, room.designatedFor != a {
-        let hallwayDistance = UInt(abs(hallway.spaceIndex(inFrontOf: designatedIndices[a]!) - hallway.spaceIndex(inFrontOf: i)))
-        
-        // move out of this room and into next room (2 + 1 steps_, assuming we end at front of target
-        aggr += a.stepEnergy * (3 + hallwayDistance)
+      
+      room.amphipods.indices.forEach { ai in
+        if let a = room.amphipods[ai], room.designatedFor != a {
+          let hallwayDistance = UInt(abs(hallway.spaceIndex(inFrontOf: designatedIndices[a]!) - hallway.spaceIndex(inFrontOf: i)))
+
+          // move out of this room (ai + 1 steps), along hallway (hallwayDistance) and to back of target
+          aggr += a.stepEnergy * (1 + UInt(ai) + hallwayDistance + 1)
+        }
       }
     }
     +
     hallway.amphipods.reduce(0) {
       // move in front of and then into designated room
-      $0 + $1.value.stepEnergy * (1 + UInt(abs(hallway.spaceIndex(inFrontOf: designatedIndices[$1.value]!) - $1.key)))
+      $0 + $1.value.stepEnergy * UInt(abs(hallway.spaceIndex(inFrontOf: designatedIndices[$1.value]!) - $1.key) + 1)
     }
   }
   
@@ -254,30 +489,36 @@ struct Burrow {
       var burrow = self
       burrow.hallway.amphipods.removeValue(forKey: pos)
       burrow.costToReach += a.stepEnergy * UInt(pathSpaces.count)
-      if burrow.sideRooms[designatedIndex].back == nil {
-        burrow.sideRooms[designatedIndex].back = a
-        burrow.costToReach += a.stepEnergy * 2
-      } else {
-        burrow.sideRooms[designatedIndex].front = a
-        burrow.costToReach += a.stepEnergy * 1
+      
+      // prefer moving to back
+      for (i, e) in burrow.sideRooms[designatedIndex].amphipods.enumerated().reversed() where e == nil {
+        burrow.sideRooms[designatedIndex].amphipods[i] = a
+        burrow.costToReach += a.stepEnergy * UInt(i + 1)
+        break
       }
       burrow.estimatedCostToFinish = burrow.estimateCostToFinish()
       
       precondition(burrow.invariantsHold)
+      precondition(burrow != self)
       res.insert(burrow)
     }
   }
   
-  private func possibleMoves(roomIndex i: Int, spot: WritableKeyPath<Room, Amphipod?>) -> Set<Burrow> {
+  private func possibleMoves(roomIndex i: Int, spot: Int) -> Set<Burrow> {
+    precondition(i >= 0 && i < sideRooms.count)
     let room = sideRooms[i]
     
     var res = Set<Burrow>()
-    guard let a = room[keyPath: spot] else { return res }
+    
+    precondition(spot >= 0 && spot < room.amphipods.count)
+    guard let a = room.amphipods[spot] else { return res }
+    
+    // test if we can exit the room
+    guard spot == 0 || room.amphipods[0..<spot].allSatisfy({ $0 == nil }) else { return res }
     
     let designatedIndices = designatedIndices()
     let hallwaySpace = hallway.spaceIndex(inFrontOf: i)
     
-    // test if we can exit room
     guard hallway.amphipods[hallwaySpace] == nil else { return res }
     
     let targetRoomIndex = designatedIndices[a]!
@@ -299,35 +540,33 @@ struct Burrow {
     // special case: move directly to target (if possible, i.e., if room is available and path is clear)
     if sideRooms[targetRoomIndex].available(), minLegal == targetRoomSpace || maxLegal == targetRoomSpace {
       var burrow = self
-      burrow.costToReach += a.stepEnergy * ((spot == \.front ? 1 : 2) + UInt(abs(targetRoomSpace - hallwaySpace)))
-      burrow.sideRooms[i][keyPath: spot] = nil
+      burrow.costToReach += a.stepEnergy * UInt(spot + 1 + abs(targetRoomSpace - hallwaySpace))
+      burrow.sideRooms[i].amphipods[spot] = nil
       
       // prefer moving to back
-      if burrow.sideRooms[targetRoomIndex].back == nil {
-        burrow.sideRooms[targetRoomIndex].back = a
-        burrow.costToReach += 2 * a.stepEnergy
-      } else {
-        assert(burrow.sideRooms[targetRoomIndex].front == nil)
-        burrow.sideRooms[targetRoomIndex].front = a
-        burrow.costToReach += a.stepEnergy
+      for (ai, e) in burrow.sideRooms[targetRoomIndex].amphipods.enumerated().reversed() where e == nil {
+        burrow.sideRooms[targetRoomIndex].amphipods[ai] = a
+        burrow.costToReach += a.stepEnergy * UInt(ai + 1)
+        break
       }
-
       burrow.estimatedCostToFinish = burrow.estimateCostToFinish()
       
       precondition(burrow.invariantsHold)
+      precondition(burrow != self)
       res.insert(burrow)
     } else {
       (minLegal...maxLegal).forEach { space in
-        // Amphipods will never stop on the space immediately outside any room.
-        guard space != hallwaySpace else { return }
+        /// Amphipods will never stop on the space immediately outside **any** room.
+        guard !Set([2, 4, 6, 8]).contains(space) else { return }
         
         var burrow = self
-        burrow.costToReach += a.stepEnergy * ((spot == \.front ? 1 : 2) + UInt(abs(space - hallwaySpace)))
-        burrow.sideRooms[i][keyPath: spot] = nil
+        burrow.costToReach += a.stepEnergy * UInt(spot + 1 + abs(space - hallwaySpace))
+        burrow.sideRooms[i].amphipods[spot] = nil
         burrow.hallway.amphipods[space] = a
         burrow.estimatedCostToFinish = burrow.estimateCostToFinish()
         
         precondition(burrow.invariantsHold)
+        precondition(burrow != self)
         res.insert(burrow)
       }
     }
@@ -338,14 +577,14 @@ struct Burrow {
   private func possibleSideRoomMoves() -> Set<Burrow> {
     sideRooms.enumerated().reduce(into: .init()) { res, curr in
       let (i, room) = curr
-      // only move front if it is not in correct room or we have to make way for back to escape
-      if let a = room.front, room.designatedFor != a || (room.back != nil && room.back != room.designatedFor) {
-        res = res.union(possibleMoves(roomIndex: i, spot: \.front))
-      }
       
-      // only move back if it is not in correct room and front is clear
-      if let a = room.back, room.designatedFor != a, room.front == nil {
-        res = res.union(possibleMoves(roomIndex: i, spot: \.back))
+      room.amphipods.enumerated().forEach { ai, a in
+        // attempt to move if a is in wrong room or any behind a is in wrong room
+        guard let a = a, room.designatedFor != a || (ai + 1 <= room.amphipods.count && !room.amphipods[(ai+1)..<room.amphipods.count].allSatisfy({ $0 == room.designatedFor })) else {
+          return
+        }
+        
+        res = res.union(possibleMoves(roomIndex: i, spot: ai))
       }
     }
   }
@@ -472,19 +711,16 @@ struct Burrow {
     
     while let current = openList.pop() {
       if current.isFinished {
-//        print("PATH:")
-//        var tmp: Burrow? = current
-//        while let b = tmp {
-//          print(b)
-//          print(b.costToReach)
-//          tmp = previous[b]
-//        }
-        
         return current
       }
       
       // finish current
       closedList.insert(current)
+      
+      if closedList.count % 8192 == 0 {
+        print("cost: \(current.costToReach), closed: \(closedList.count)")
+        print(current)
+      }
       
       // expand current
       current.possibleMoves().forEach { next in
@@ -537,8 +773,10 @@ extension Burrow: CustomStringConvertible {
     """
     #############
     #\(hallway)#
-    ###\(sideRooms.map { $0.front?.description ?? "." }.joined(separator: "#"))###
-      #\(sideRooms.map { $0.back?.description ?? "." }.joined(separator: "#"))#
+    ###\(sideRooms.map { $0.amphipods[0]?.description ?? "." }.joined(separator: "#"))###
+      #\(sideRooms.map { $0.amphipods[1]?.description ?? "." }.joined(separator: "#"))#
+      #\(sideRooms.map { $0.amphipods[2]?.description ?? "." }.joined(separator: "#"))#
+      #\(sideRooms.map { $0.amphipods[3]?.description ?? "." }.joined(separator: "#"))#
       #########
     """
   }
@@ -553,10 +791,7 @@ let testInput = """
 """
 
 let testBurrow = try Burrow(description: testInput)
-guard let testOrganized = testBurrow.organized() else {
-  exit(-1)
-}
-assert(testOrganized.costToReach == 12521)
+assert(testBurrow.organized()?.costToReach == 44169)
 
 let input = """
 #############
@@ -570,4 +805,4 @@ let burrow = try Burrow(description: input)
 guard let organized = burrow.organized() else {
   exit(-1)
 }
-print("part 1: \(organized.costToReach)")
+print("part 2: \(organized.costToReach)")

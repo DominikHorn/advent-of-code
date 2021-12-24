@@ -338,10 +338,7 @@ struct Burrow {
   var hallway: Hallway = .init(spaces: 11)
   
   /// ... and a few siderooms
-  var sideRooms: [Room] = Amphipod
-    .allCases
-    .sorted { $0.rawValue < $1.rawValue }
-    .map { .init(designatedFor: $0)}
+  var sideRooms: [Room]
   
   var isFinished: Bool {
     hallway.amphipods.isEmpty && sideRooms.allSatisfy { $0.isFinished }
@@ -349,6 +346,9 @@ struct Burrow {
   
   /// debug test if invariants hold
   private var invariantsHold: Bool {
+    guard let roomSize = sideRooms.first?.amphipods.count,
+          sideRooms.allSatisfy({ $0.amphipods.count == roomSize }) else { return false }
+    
     var cnts = [Amphipod: Int]()
     sideRooms.forEach {
       $0.amphipods.forEach {
@@ -359,7 +359,7 @@ struct Burrow {
       cnts[$0.value] = (cnts[$0.value] ?? 0) + 1
     }
     
-    return cnts.allSatisfy { $0.value == 4 }
+    return cnts.allSatisfy { $0.value == roomSize }
   }
   
   /// internal cost metrics not part of Equatable/Hashable consideration
@@ -370,10 +370,15 @@ struct Burrow {
   struct Room: Hashable {
     let designatedFor: Amphipod
     
-    var amphipods: [Amphipod?] = .init(repeating: nil, count: 4)
+    var amphipods: [Amphipod?]
     
     var isFinished: Bool {
       amphipods.allSatisfy { designatedFor == $0 }
+    }
+    
+    init(designatedFor: Amphipod, spaces: Int = 4) {
+      self.designatedFor = designatedFor
+      self.amphipods = .init(repeating: nil, count: spaces)
     }
     
     func available() -> Bool {
@@ -406,22 +411,25 @@ struct Burrow {
     }
   }
   
-  init(description: String) throws {
+  init(description: String, middleLayers: [[Amphipod]] = []) throws {
     let raw = description.split(separator: "\n")
     guard raw.count == 5 else { throw ParsingError.invalidInput }
     
     let fronts = raw[2].compactMap { Amphipod(rawValue: $0) }
-    let topMiddle: [Amphipod] = [.desert, .copper, .bronze, .amber]
-    let bottomMiddle: [Amphipod] = [.desert, .bronze, .amber, .copper]
     let backs = raw[3].compactMap { Amphipod(rawValue: $0) }
     
-    guard fronts.count == sideRooms.count, backs.count == sideRooms.count else { throw ParsingError.missingStarts }
-    
+    guard fronts.count == Amphipod.allCases.count, backs.count == Amphipod.allCases.count else { throw ParsingError.missingStarts }
+    self.sideRooms = Amphipod
+      .allCases
+      .sorted { $0.rawValue < $1.rawValue }
+      .map { .init(designatedFor: $0, spaces: 2 + middleLayers.count) }
+            
     sideRooms.indices.forEach { i in
       sideRooms[i].amphipods[0] = fronts[i]
-      sideRooms[i].amphipods[1] = topMiddle[i]
-      sideRooms[i].amphipods[2] = bottomMiddle[i]
-      sideRooms[i].amphipods[3] = backs[i]
+      middleLayers.enumerated().forEach { j, m in
+        sideRooms[i].amphipods[j+1] = m[i]
+      }
+      sideRooms[i].amphipods[sideRooms[i].amphipods.count-1] = backs[i]
     }
     
     estimatedCostToFinish = estimateCostToFinish()
@@ -716,12 +724,7 @@ struct Burrow {
       
       // finish current
       closedList.insert(current)
-      
-      if closedList.count % 8192 == 0 {
-        print("cost: \(current.costToReach), closed: \(closedList.count)")
-        print(current)
-      }
-      
+            
       // expand current
       current.possibleMoves().forEach { next in
         precondition(current != next)
@@ -770,13 +773,13 @@ extension Burrow.Hallway: CustomStringConvertible {
 
 extension Burrow: CustomStringConvertible {
   var description: String {
-    """
+    guard let cnt = sideRooms.first?.amphipods.count, cnt > 0 else { return "ERROR" }
+    
+    return """
     #############
     #\(hallway)#
     ###\(sideRooms.map { $0.amphipods[0]?.description ?? "." }.joined(separator: "#"))###
-      #\(sideRooms.map { $0.amphipods[1]?.description ?? "." }.joined(separator: "#"))#
-      #\(sideRooms.map { $0.amphipods[2]?.description ?? "." }.joined(separator: "#"))#
-      #\(sideRooms.map { $0.amphipods[3]?.description ?? "." }.joined(separator: "#"))#
+      #\((1..<cnt).map { i in sideRooms.map { room in room.amphipods[i]?.description ?? "." }.joined(separator: "#") }.joined(separator: "#\n  #"))#
       #########
     """
   }
@@ -790,8 +793,16 @@ let testInput = """
   #########
 """
 
-let testBurrow = try Burrow(description: testInput)
-assert(testBurrow.organized()?.costToReach == 44169)
+let testBurrow1 = try Burrow(description: testInput)
+assert(testBurrow1.organized()?.costToReach == 12521)
+let testBurrow2 = try Burrow(
+  description: testInput,
+  middleLayers: [
+    [.desert, .copper, .bronze, .amber],
+    [.desert, .bronze, .amber, .copper]
+  ]
+)
+assert(testBurrow2.organized()?.costToReach == 44169)
 
 let input = """
 #############
@@ -801,8 +812,20 @@ let input = """
   #########
 """
 
-let burrow = try Burrow(description: input)
-guard let organized = burrow.organized() else {
+let burrow1 = try Burrow(description: input)
+guard let organized1 = burrow1.organized() else {
   exit(-1)
 }
-print("part 2: \(organized.costToReach)")
+print("part 1: \(organized1.costToReach)")
+
+let burrow2 = try Burrow(
+  description: input,
+  middleLayers: [
+    [.desert, .copper, .bronze, .amber],
+    [.desert, .bronze, .amber, .copper]
+  ]
+)
+guard let organized2 = burrow2.organized() else {
+  exit(-1)
+}
+print("part 2: \(organized2.costToReach)")

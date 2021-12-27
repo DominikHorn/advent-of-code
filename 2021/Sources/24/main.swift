@@ -123,7 +123,7 @@ struct Input: Expression, Hashable {
   }
   
   func bounds() -> (min: Int, max: Int) {
-    (0, 9)
+    (1, 9)
   }
   
   func compute(withInputs inputs: [Input : Constant]) throws -> Constant {

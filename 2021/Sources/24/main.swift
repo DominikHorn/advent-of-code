@@ -57,6 +57,12 @@ import Foundation
  MONAD imposes additional, mysterious restrictions on model numbers, and legend says the last copy of the MONAD documentation was eaten by a tanuki. You'll need to figure out what MONAD does some other way.
 
  To enable as many submarine features as possible, find the largest valid fourteen-digit model number that contains no 0 digits. What is the largest model number accepted by MONAD?
+ 
+ --- Part Two ---
+
+ As the submarine starts booting up things like the Retro Encabulator, you realize that maybe you don't need all these submarine features after all.
+
+ What is the smallest model number accepted by MONAD?
  */
 
 enum ParsingError: Error {
@@ -492,11 +498,11 @@ struct ALU {
     var assumptions: [Assumption]
     
     /// picks the next input that's not yet set (starting with msb) and attempts to find the maximum value for it
-    private func greedyMaximize(_ existing: [Input: Constant] = [:]) -> [Input: Constant]? {
+    private func greedyPick(_ existing: [Input: Constant] = [:], from picks: [Int]) -> [Input: Constant]? {
       guard existing.count < 14 else { return existing }
       
       let inp = Input(id: existing.count + 1)
-      for attempt in (0...9).reversed() {
+      for attempt in picks {
         var inputs = existing
         inputs[inp] = attempt
         
@@ -504,7 +510,7 @@ struct ALU {
         guard assumptions.allSatisfy({ $0.holds(forInputs: inputs)}) else { continue }
         
         // immediately return if we find a solution
-        if let solution = greedyMaximize(inputs) {
+        if let solution = greedyPick(inputs, from: picks) {
           return solution
         }
       }
@@ -516,7 +522,13 @@ struct ALU {
     func maxInputsToFinishAtZero() -> [Input: Constant]? {
       guard let b = finishState[.z]?.bounds(), b.min <= 0, b.max >= 0 else { return nil }
       
-      return greedyMaximize([:])
+      return greedyPick([:], from: (1...9).reversed())
+    }
+    
+    func minInputsToFinishAtZero() -> [Input: Constant]? {
+      guard let b = finishState[.z]?.bounds(), b.min <= 0, b.max >= 0 else { return nil }
+      
+      return greedyPick([:], from: Array(1...9))
     }
     
     var description: String {
@@ -861,10 +873,27 @@ add z y
 """)
 
 let alu = ALU()
-try alu
+let analysis = try alu
   .analyse(program: monad)
-  .compactMap { $0.maxInputsToFinishAtZero() }
-  .enumerated()
-  .forEach { i, inputs in
-    print("\(i): \(inputs.sorted { $0.key.id < $1.key.id }.map { "\($0.value)" }.joined())")
+
+let maxInput = analysis
+  .compactMap {
+    guard let inputs = $0.maxInputsToFinishAtZero() else { return nil }
+    return inputs.sorted { $0.key.id < $1.key.id }.map { "\($0.value)" }.joined()
   }
+  .sorted { (a: String, b: String) in a.lexicographicallyPrecedes(b) }
+  .last
+
+guard let max = maxInput else { exit(-1) }
+print("part 1: \(max)")
+
+let minInput = analysis
+  .compactMap {
+    guard let inputs = $0.minInputsToFinishAtZero() else { return nil }
+    return inputs.sorted { $0.key.id < $1.key.id }.map { "\($0.value)" }.joined()
+  }
+  .sorted { (a: String, b: String) in a.lexicographicallyPrecedes(b) }
+  .first
+
+guard let min = minInput else { exit(-1) }
+print("part 2: \(min)")

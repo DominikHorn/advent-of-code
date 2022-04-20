@@ -12,7 +12,7 @@ sed -e '1s/^/[\'$'\n''/' -e '$s/,$/\'$'\n'']/' "${FRAGMENT}" > "${COMPILE_DB}"
 rm ${FRAGMENT}
 
 # Execute and retain result
-./"${EXEC_NAME}" ${@:2}
+time ./"${EXEC_NAME}" ${@:2}
 EXIT_CODE=$?
 
 # Cleanup generated files

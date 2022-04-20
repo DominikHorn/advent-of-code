@@ -5,7 +5,8 @@ FRAGMENT=frag.json
 COMPILE_DB=compile_commands.json
 
 # Compile program
-clang++ --std=c++20 -MJ "${FRAGMENT}" -O0 -g -fsanitize=address,undefined $1 -o "${EXEC_NAME}"
+clang++ --std=c++20 -MJ "${FRAGMENT}" -O0 -g -fsanitize=address,undefined $1 -o "${EXEC_NAME}" \
+  || exit 1
 
 # Build compilation database
 sed -e '1s/^/[\'$'\n''/' -e '$s/,$/\'$'\n'']/' "${FRAGMENT}" > "${COMPILE_DB}"
